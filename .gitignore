@@ -1,4 +1,21 @@
+# Python
 __pycache__/
 *.pyc
 .venv/
+
+# Secrets and environment
 .env
+.env.*
+!.env.example
+*.secret
+*.secrets
+*.pem
+*.key
+
+# OpenClaw/local config that may contain sensitive values
+openclaw.json
+
+# Common local noise
+.DS_Store
+Thumbs.db
+*.log
