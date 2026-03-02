@@ -20,3 +20,16 @@ uvicorn app.main:app --reload --port 8000
 ```bash
 alembic upgrade head
 ```
+
+## Seed sample data
+
+```bash
+python scripts/seed_sample.py
+```
+
+## Run tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
