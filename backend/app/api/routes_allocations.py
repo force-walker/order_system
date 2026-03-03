@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -11,6 +12,8 @@ from app.schemas.allocation import (
     AllocationConfirmResponse,
     AllocationOverrideRequest,
     AllocationRunResponse,
+    AllocationSplitLineRequest,
+    AllocationSplitLineResponse,
 )
 
 router = APIRouter(prefix='/allocations', tags=['allocations'])
@@ -83,6 +86,78 @@ def override_allocation(allocation_id: int, payload: AllocationOverrideRequest, 
     )
     db.commit()
     return {'ok': True, 'allocation_id': alloc.id}
+
+
+@router.post('/{allocation_id}/split-line', response_model=AllocationSplitLineResponse)
+def split_line(allocation_id: int, payload: AllocationSplitLineRequest, db: Session = Depends(get_db)) -> AllocationSplitLineResponse:
+    alloc = db.query(SupplierAllocation).filter(SupplierAllocation.id == allocation_id).one_or_none()
+    if alloc is None:
+        raise HTTPException(status_code=404, detail='allocation not found')
+
+    target_qty = Decimal(alloc.final_qty or alloc.suggested_qty or 0)
+    if target_qty <= 0:
+        raise HTTPException(status_code=400, detail='allocation has invalid target qty')
+
+    sum_parts = sum((Decimal(p.final_qty) for p in payload.parts), Decimal('0'))
+    if sum_parts != target_qty:
+        raise HTTPException(
+            status_code=400,
+            detail=f'split qty mismatch: expected={target_qty} actual={sum_parts}',
+        )
+
+    split_group_id = f"SPLIT-{uuid4().hex[:12]}"
+    child_ids: list[int] = []
+
+    for part in payload.parts:
+        child = SupplierAllocation(
+            order_item_id=alloc.order_item_id,
+            suggested_supplier_id=alloc.suggested_supplier_id,
+            final_supplier_id=part.final_supplier_id,
+            suggested_qty=alloc.suggested_qty,
+            suggested_uom=alloc.suggested_uom,
+            final_qty=part.final_qty,
+            final_uom=part.final_uom,
+            is_manual_override=True,
+            override_reason_code=payload.override_reason_code,
+            override_note=payload.override_note,
+            overridden_by=payload.overridden_by,
+            overridden_at=datetime.utcnow(),
+            split_group_id=split_group_id,
+            parent_allocation_id=alloc.id,
+            is_split_child=True,
+        )
+        db.add(child)
+        db.flush()
+        child_ids.append(child.id)
+
+    alloc.is_manual_override = True
+    alloc.override_reason_code = payload.override_reason_code
+    alloc.override_note = payload.override_note
+    alloc.overridden_by = payload.overridden_by
+    alloc.overridden_at = datetime.utcnow()
+    alloc.split_group_id = split_group_id
+
+    db.add(
+        AuditLog(
+            entity_type='allocation',
+            entity_id=alloc.id,
+            action=AuditAction.override,
+            before_json={
+                'final_supplier_id': alloc.final_supplier_id,
+                'final_qty': str(target_qty),
+                'final_uom': alloc.final_uom,
+            },
+            after_json={
+                'split_group_id': split_group_id,
+                'child_allocation_ids': child_ids,
+            },
+            reason_code=payload.override_reason_code,
+            changed_by=payload.overridden_by,
+        )
+    )
+
+    db.commit()
+    return AllocationSplitLineResponse(split_group_id=split_group_id, allocation_ids=child_ids)
 
 
 @router.post('/confirm', response_model=AllocationConfirmResponse)

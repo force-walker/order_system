@@ -139,6 +139,9 @@ class SupplierAllocation(Base):
     override_note: Mapped[str | None] = mapped_column(Text)
     overridden_by: Mapped[str | None] = mapped_column(String(64))
     overridden_at: Mapped[datetime | None] = mapped_column(DateTime)
+    split_group_id: Mapped[str | None] = mapped_column(String(64), index=True)
+    parent_allocation_id: Mapped[int | None] = mapped_column(ForeignKey('supplier_allocations.id'), index=True)
+    is_split_child: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

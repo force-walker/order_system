@@ -62,7 +62,23 @@
 }
 ```
 
-## 5) Create invoice
+## 5) Split allocation line
+
+`POST /api/allocations/{allocation_id}/split-line`
+
+```json
+{
+  "parts": [
+    { "final_supplier_id": 2, "final_qty": 0.6, "final_uom": "piece" },
+    { "final_supplier_id": 3, "final_qty": 0.4, "final_uom": "piece" }
+  ],
+  "override_reason_code": "stockout",
+  "override_note": "split across 2 suppliers",
+  "overridden_by": "ikoji"
+}
+```
+
+## 6) Create invoice
 
 `POST /api/invoices`
 
@@ -75,6 +91,6 @@
 }
 ```
 
-## 6) Finalize invoice
+## 7) Finalize invoice
 
 `POST /api/invoices/{invoice_id}/finalize`
