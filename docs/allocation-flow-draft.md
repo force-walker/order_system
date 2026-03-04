@@ -27,7 +27,7 @@ Speed up purchasing with automatic supplier allocation, while guaranteeing human
    - Produces `suggested_supplier`, `suggested_qty`.
 
 3. **Review Screen**
-   - Three views:
+   - Three views (must share common columns/behavior):
      - By Supplier (for purchase dispatch)
      - By Customer (for order consistency)
      - By Product (for consolidation)
@@ -41,6 +41,7 @@ Speed up purchasing with automatic supplier allocation, while guaranteeing human
      - Change supplier
      - Split one line into multiple suppliers
      - Adjust final qty/uom
+     - Update business decision fields (target price, stockout response, comments)
    - System requires:
      - `override_reason_code`
      - optional note
@@ -51,6 +52,8 @@ Speed up purchasing with automatic supplier allocation, while guaranteeing human
      - unassigned lines remain
      - invalid qty (<= 0)
      - required fields missing
+     - split-child totals do not match parent allocation qty
+     - split-child UOM does not match parent UOM
    - Show summary totals by supplier/product/customer.
 
 6. **Confirm & Lock Version**
@@ -60,7 +63,27 @@ Speed up purchasing with automatic supplier allocation, while guaranteeing human
 
 7. **Purchase Result Registration**
    - Buyer records actual outcomes (`full/partial/failed/substitute`)
-   - Catch-weight actuals recorded where needed.
+   - Catch-weight actuals recorded where needed
+   - Final purchase unit price input is required for cost settlement (`final_unit_cost`)
+
+---
+
+## What "All edits are audit-logged" means
+Any allocation change must be recorded in audit history so we can trace who changed what and why.
+
+Minimum audit payload:
+- `who`: user id/name
+- `when`: timestamp
+- `what`: before/after values
+- `why`: reason code + optional note
+
+Covered actions:
+- Change supplier
+- Change qty/uom
+- Split line / revert split
+- Revert to suggested
+- Bulk set supplier
+- Update target price / stockout policy / comment
 
 ---
 
@@ -71,8 +94,8 @@ Speed up purchasing with automatic supplier allocation, while guaranteeing human
 - Show runtime + count processed
 - Show high-level success/failure summary
 
-## B) Allocation Review Grid
-Columns (minimum):
+## B) Allocation Review Grid (Common Schema for all views)
+Common columns (minimum):
 - Customer
 - Product
 - Ordered Qty/UOM
@@ -82,6 +105,9 @@ Columns (minimum):
 - Final Qty (editable)
 - Manual Override flag
 - Reason code
+- **Target Price (希望価格)**
+- **Stockout Policy (欠品時対応)**
+- **Comment (コメント)**
 
 Actions:
 - `Change supplier`
@@ -89,12 +115,41 @@ Actions:
 - `Revert to suggested`
 - `Bulk set supplier`
 
-## C) Conflict and Warning Panel
+## C) By Supplier Grid
+Purpose:
+- Dispatch and confirm purchase instructions per supplier
+
+Additional columns:
+- Supplier group total qty
+- Supplier dispatch status
+- Last supplier response timestamp
+
+## D) By Customer Grid
+Purpose:
+- Ensure customer-level consistency and shortage communication
+
+Additional columns:
+- Delivery date/time window
+- Customer priority
+- Customer-facing shortage note
+
+## E) By Product Grid
+Purpose:
+- Consolidate demand and compare sourcing options
+
+Additional columns:
+- Total demand qty by product
+- Supplier candidates / split ratio
+- Price variance vs target price
+
+## F) Conflict and Warning Panel
 - Unassigned lines
 - Split lines count
 - Catch-weight lines requiring later actual weight
+- Missing target price count (if policy makes it mandatory)
+- Missing stockout policy count
 
-## D) Confirm Dialog (Two-Step)
+## G) Confirm Dialog (Two-Step)
 - Step 1: preview totals
 - Step 2: explicit confirm with user name/password/2nd click (MVP: second click)
 
@@ -107,6 +162,14 @@ Actions:
 - `urgent_delivery`
 - `customer_request`
 - `manual_correction`
+
+---
+
+## Suggested Stockout Policy Codes
+- `backorder` (入荷待ち)
+- `substitute` (代替品提案)
+- `cancel` (キャンセル)
+- `partial_ok` (一部納品可)
 
 ---
 
