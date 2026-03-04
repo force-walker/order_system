@@ -104,12 +104,21 @@ Auto-suggest + manual override trail.
 - `override_note` (text, nullable)
 - `overridden_by` (FK user, nullable)
 - `overridden_at` (timestamp, nullable)
+- `target_price` (numeric(12,2), nullable)  ← 希望価格
+- `stockout_policy` (`backorder` | `substitute` | `cancel` | `partial_ok`, nullable)
+- `comment` (text, nullable)
+- `split_group_id` (varchar, nullable)
+- `parent_allocation_id` (self FK, nullable)
+- `is_split_child` (boolean, default false)
 - `created_at`, `updated_at`
 
 Indexes:
 - `idx_allocations_order_item_id`
 - `idx_allocations_final_supplier_id`
 - `idx_allocations_manual_override`
+- `idx_allocations_split_group_id`
+- `idx_allocations_parent_allocation_id`
+- `idx_allocations_is_split_child`
 
 ## 5) `purchase_results`
 Record actual buying outcome.
@@ -119,7 +128,11 @@ Record actual buying outcome.
 - `purchased_qty` (numeric(12,3))
 - `purchased_uom` (varchar)
 - `actual_weight_kg` (numeric(12,3), nullable)
-- `unit_cost` (numeric(12,2), nullable)
+- `unit_cost` (numeric(12,2), nullable)  ※初期記録
+- `final_unit_cost` (numeric(12,2), nullable)  ※最終仕入れ単価（確定値）
+- `currency` (varchar(3), default `JPY`)
+- `cost_uom` (varchar, e.g., `kg` / `piece`)
+- `is_final` (boolean, default false)
 - `result_status` (`full` | `partial` | `failed` | `substitute`)
 - `recorded_by` (FK user)
 - `recorded_at` (timestamp)
