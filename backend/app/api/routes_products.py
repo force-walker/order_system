@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.core.auth import AuthContext, require_roles
 from app.db.session import get_db
 from app.models.entities import PricingBasis, Product
 from app.schemas.product import ProductCreate, ProductResponse
@@ -9,7 +10,11 @@ router = APIRouter(prefix='/products', tags=['products'])
 
 
 @router.post('', response_model=ProductResponse)
-def create_product(payload: ProductCreate, db: Session = Depends(get_db)) -> ProductResponse:
+def create_product(
+    payload: ProductCreate,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_roles('admin')),
+) -> ProductResponse:
     product = Product(
         sku=payload.sku,
         name=payload.name,

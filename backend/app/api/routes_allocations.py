@@ -5,6 +5,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.core.auth import AuthContext, require_roles
 from app.db.session import get_db
 from app.models.entities import AuditAction, AuditLog, LineStatus, Order, OrderItem, SupplierAllocation
 from app.schemas.allocation import (
@@ -20,7 +21,11 @@ router = APIRouter(prefix='/allocations', tags=['allocations'])
 
 
 @router.post('/run-auto', response_model=AllocationRunResponse)
-def run_auto_allocation(default_supplier_id: int = Query(1, ge=1), db: Session = Depends(get_db)) -> AllocationRunResponse:
+def run_auto_allocation(
+    default_supplier_id: int = Query(1, ge=1),
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_roles('admin', 'buyer')),
+) -> AllocationRunResponse:
     items = (
         db.query(OrderItem)
         .join(Order, Order.id == OrderItem.order_id)
@@ -49,7 +54,12 @@ def run_auto_allocation(default_supplier_id: int = Query(1, ge=1), db: Session =
 
 
 @router.patch('/{allocation_id}/override')
-def override_allocation(allocation_id: int, payload: AllocationOverrideRequest, db: Session = Depends(get_db)):
+def override_allocation(
+    allocation_id: int,
+    payload: AllocationOverrideRequest,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_roles('admin', 'buyer')),
+):
     alloc = db.query(SupplierAllocation).filter(SupplierAllocation.id == allocation_id).one_or_none()
     if alloc is None:
         raise HTTPException(status_code=404, detail='allocation not found')
@@ -89,7 +99,12 @@ def override_allocation(allocation_id: int, payload: AllocationOverrideRequest, 
 
 
 @router.post('/{allocation_id}/split-line', response_model=AllocationSplitLineResponse)
-def split_line(allocation_id: int, payload: AllocationSplitLineRequest, db: Session = Depends(get_db)) -> AllocationSplitLineResponse:
+def split_line(
+    allocation_id: int,
+    payload: AllocationSplitLineRequest,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_roles('admin', 'buyer')),
+) -> AllocationSplitLineResponse:
     alloc = db.query(SupplierAllocation).filter(SupplierAllocation.id == allocation_id).one_or_none()
     if alloc is None:
         raise HTTPException(status_code=404, detail='allocation not found')
@@ -161,7 +176,11 @@ def split_line(allocation_id: int, payload: AllocationSplitLineRequest, db: Sess
 
 
 @router.post('/confirm', response_model=AllocationConfirmResponse)
-def confirm_allocations(payload: AllocationConfirmRequest, db: Session = Depends(get_db)) -> AllocationConfirmResponse:
+def confirm_allocations(
+    payload: AllocationConfirmRequest,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_roles('admin', 'buyer')),
+) -> AllocationConfirmResponse:
     q = db.query(SupplierAllocation)
     if payload.allocation_ids:
         q = q.filter(SupplierAllocation.id.in_(payload.allocation_ids))

@@ -3,6 +3,7 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.auth import AuthContext, require_roles
 from app.db.session import get_db
 from app.models.entities import Invoice, InvoiceItem, InvoiceStatus, Order, OrderItem, PricingBasis
 from app.schemas.invoice import InvoiceCreateRequest, InvoiceCreateResponse, InvoiceFinalizeResponse
@@ -12,7 +13,11 @@ router = APIRouter(prefix='/invoices', tags=['invoices'])
 
 
 @router.post('', response_model=InvoiceCreateResponse)
-def create_invoice(payload: InvoiceCreateRequest, db: Session = Depends(get_db)) -> InvoiceCreateResponse:
+def create_invoice(
+    payload: InvoiceCreateRequest,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_roles('admin', 'order_entry')),
+) -> InvoiceCreateResponse:
     order = db.query(Order).filter(Order.id == payload.order_id).one_or_none()
     if order is None:
         raise HTTPException(status_code=404, detail='order not found')
@@ -97,7 +102,11 @@ def create_invoice(payload: InvoiceCreateRequest, db: Session = Depends(get_db))
 
 
 @router.post('/{invoice_id}/finalize', response_model=InvoiceFinalizeResponse)
-def finalize_invoice(invoice_id: int, db: Session = Depends(get_db)) -> InvoiceFinalizeResponse:
+def finalize_invoice(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_roles('admin', 'order_entry')),
+) -> InvoiceFinalizeResponse:
     invoice = db.query(Invoice).filter(Invoice.id == invoice_id).one_or_none()
     if invoice is None:
         raise HTTPException(status_code=404, detail='invoice not found')

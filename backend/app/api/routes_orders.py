@@ -3,6 +3,7 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.auth import AuthContext, require_roles
 from app.db.session import get_db
 from app.models.entities import Order, OrderItem, OrderStatus, PricingBasis
 from app.schemas.order import OrderCreate, OrderCreateResponse
@@ -12,7 +13,11 @@ router = APIRouter(prefix='/orders', tags=['orders'])
 
 
 @router.post('', response_model=OrderCreateResponse)
-def create_order(payload: OrderCreate, db: Session = Depends(get_db)) -> OrderCreateResponse:
+def create_order(
+    payload: OrderCreate,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_roles('admin', 'order_entry')),
+) -> OrderCreateResponse:
     order = Order(
         order_no=payload.order_no,
         customer_id=payload.customer_id,

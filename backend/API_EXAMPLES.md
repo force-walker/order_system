@@ -1,5 +1,16 @@
 # API Examples (MVP)
 
+## Auth headers (MVP draft)
+
+All write APIs now require headers:
+
+- `X-User-Id: <user-id>`
+- `X-Role: admin | order_entry | buyer | supplier | customer`
+- Optional scope headers:
+  - `X-Supplier-Id: <int>`
+  - `X-Customer-Id: <int>`
+
+
 ## 1) Create product
 
 `POST /api/products`
