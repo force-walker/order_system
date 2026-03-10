@@ -48,6 +48,10 @@ Updated: 2026-03-05
    - Endpoint-level authorization policy by role
    - Scope rules, audit requirements, and auth error semantics
 
+11. `docs/report-and-api-io-definition-draft.md`
+   - 帳票（CSV/PDF）とAPIのI/O項目定義
+   - 必須/型/コード値/エラー設計の統一
+
 ## Scope
 This package is draft-level functional specification for MVP planning and implementation handoff.
 
