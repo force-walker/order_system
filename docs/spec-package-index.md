@@ -70,3 +70,7 @@ This package is draft-level functional specification for MVP planning and implem
   - SQL migrations
   - API contract
   - screen wireframes (3-grid unified schema)
+
+13. `docs/requirements-definition-closure-v1.md`
+   - MVP要件定義のクローズ宣言
+   - 未確定項目の最終決定（delivery_date/target_price/final_unit_cost）

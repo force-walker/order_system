@@ -76,3 +76,8 @@ Fix priority and approval authority for day-to-day exception decisions.
 - `data_error`
 - `duplicate_order`
 - `policy_exception`
+
+## Fixed policy notes (2026-03-11)
+- `delivery_date` is mandatory in order API; default next-day at creation.
+- `target_price` required when override reason is `better_price` or `urgent_delivery`.
+- Supplier can update `final_unit_cost` for own lines; all changes must be audit-logged and reviewed before invoice finalize.

@@ -101,7 +101,7 @@ Legend:
 
 ---
 
-## Open points to finalize
-- Whether 受注入力者 can change `delivery_date` after `confirmed`
-- Whether 仕入先 can edit `final_unit_cost` directly or suggestion-only
-- Whether 発注者 can finalize invoice in emergency mode
+## Finalized points (2026-03-11)
+- 受注入力者は `confirmed` 後の `delivery_date` 変更不可（Adminのみ可）
+- 仕入先は自分の担当行について `final_unit_cost` 更新可（監査ログ必須）
+- 発注者は請求確定不可（緊急時でも不可）。請求確定は Admin / 受注入力者のみ

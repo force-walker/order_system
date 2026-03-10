@@ -56,8 +56,8 @@ Scope rules:
 - `PATCH /api/purchase-results/{id}`
   - Roles: `admin`, `buyer`, `supplier` (own lines, limited fields)
 - `PATCH /api/purchase-results/{id}/final-cost`
-  - Roles: `admin`, `buyer`
-  - Optional future: `supplier` can propose, not finalize
+  - Roles: `admin`, `buyer`, `supplier` (own lines only)
+  - Supplier update is allowed with mandatory audit log; buyer/admin performs pre-invoice final review
 
 ## Delivery Confirmation
 - `POST /api/deliveries/{order_id}/confirm-receipt`

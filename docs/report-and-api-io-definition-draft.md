@@ -216,7 +216,7 @@ Totals:
 
 ---
 
-## 5) 未確定項目（FIX要）
-- `delivery_date` をAPI必須にするか
-- `target_price` の必須条件（商品/顧客/バッチ単位）
-- supplierによる `final_unit_cost` 更新可否（提案のみか確定可か）
+## 5) 確定事項（2026-03-11 FIX）
+- `delivery_date` はAPI必須項目とする（Defaultは注文日の翌日、手動変更可）
+- `target_price` は通常は任意。ただし `override_reason_code=better_price` または `urgent_delivery` の場合は必須
+- supplier は自分の担当行に限り `final_unit_cost` を更新可（監査ログ必須）。ただし請求確定前に buyer/admin が最終確認を行う
