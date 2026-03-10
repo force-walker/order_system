@@ -23,6 +23,15 @@ Updated: 2026-03-05
    - End-to-end role flow (受注入力者 / 発注者 / 仕入れ先 / 販売先)
    - Role responsibilities and key inputs/outputs
 
+5. `docs/status-transition-draft.md`
+   - Lifecycle transition definition
+   - MVP terminal status = `invoiced` (`completed` removed)
+   - `paid` deferred to future accounting scope
+
+6. `docs/exception-cases-draft.md`
+   - Exception scenarios (partial, stockout, substitute, catch-weight blocking, etc.)
+   - Required actions and audit requirements
+
 ## Scope
 This package is draft-level functional specification for MVP planning and implementation handoff.
 
