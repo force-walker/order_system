@@ -74,3 +74,7 @@ This package is draft-level functional specification for MVP planning and implem
 13. `docs/requirements-definition-closure-v1.md`
    - MVP要件定義のクローズ宣言
    - 未確定項目の最終決定（delivery_date/target_price/final_unit_cost）
+
+14. `docs/permission-change-policy.md`
+   - 権限変更の原則と運用手順
+   - supplier入力補助 / buyer最終validation方針と将来拡張パターン
