@@ -36,6 +36,14 @@ Updated: 2026-03-05
    - Performance/availability/security/audit/backup/operations requirements
    - MVP service quality and operational baselines
 
+8. `docs/rbac-draft.md`
+   - Role-based access control matrix (Admin / 受注入力者 / 発注者 / 仕入先 / 販売先)
+   - Function-level create/update/confirm/cancel permissions
+
+9. `docs/business-rules-decision-table-draft.md`
+   - Decision priority table and final approver mapping
+   - Conflict resolution order and approval thresholds
+
 ## Scope
 This package is draft-level functional specification for MVP planning and implementation handoff.
 
