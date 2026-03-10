@@ -32,6 +32,10 @@ Updated: 2026-03-05
    - Exception scenarios (partial, stockout, substitute, catch-weight blocking, etc.)
    - Required actions and audit requirements
 
+7. `docs/non-functional-requirements-draft.md`
+   - Performance/availability/security/audit/backup/operations requirements
+   - MVP service quality and operational baselines
+
 ## Scope
 This package is draft-level functional specification for MVP planning and implementation handoff.
 
