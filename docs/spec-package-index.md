@@ -52,6 +52,10 @@ Updated: 2026-03-05
    - 帳票（CSV/PDF）とAPIのI/O項目定義
    - 必須/型/コード値/エラー設計の統一
 
+12. `docs/uat-acceptance-checklist-draft.md`
+   - UATシナリオ別の受け入れ判定チェックリスト
+   - Go / No-Go 判定条件とサインオフ項目
+
 ## Scope
 This package is draft-level functional specification for MVP planning and implementation handoff.
 
