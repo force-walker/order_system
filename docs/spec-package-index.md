@@ -44,6 +44,10 @@ Updated: 2026-03-05
    - Decision priority table and final approver mapping
    - Conflict resolution order and approval thresholds
 
+10. `docs/api-authorization-spec-draft.md`
+   - Endpoint-level authorization policy by role
+   - Scope rules, audit requirements, and auth error semantics
+
 ## Scope
 This package is draft-level functional specification for MVP planning and implementation handoff.
 
