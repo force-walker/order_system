@@ -44,6 +44,7 @@ Order header.
 - `order_no` (unique)
 - `customer_id` (FK)
 - `order_datetime`
+- `delivery_date` (date, default: order date + 1 day, editable)
 - `delivery_type` (`delivery` | `pickup`)
 - `delivery_address_snapshot` (text/json)
 - `payment_method` (nullable)
@@ -125,6 +126,7 @@ Record actual buying outcome.
 
 - `id` (PK)
 - `allocation_id` (FK)
+- `supplier_id` (FK, default from allocation final supplier, editable at registration)
 - `purchased_qty` (numeric(12,3))
 - `purchased_uom` (varchar)
 - `actual_weight_kg` (numeric(12,3), nullable)
@@ -140,7 +142,11 @@ Record actual buying outcome.
 
 Indexes:
 - `idx_purchase_results_allocation_id`
+- `idx_purchase_results_supplier_id`
 - `idx_purchase_results_result_status`
+
+Operational note:
+- Purchase result entry screen should display supplier and support sorting/filtering by supplier to speed up data entry.
 
 ## 6) `invoices` / `invoice_items`
 Billing output.
@@ -150,6 +156,7 @@ Billing output.
 - `invoice_no` (unique)
 - `customer_id` (FK)
 - `invoice_date`
+- `delivery_date` (date, single date per invoice)
 - `due_date` (nullable)
 - `subtotal`, `tax_total`, `grand_total`
 - `status` (`draft` | `finalized` | `sent` | `paid` | `cancelled`)

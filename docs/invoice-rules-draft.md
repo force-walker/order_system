@@ -50,6 +50,8 @@ Cannot finalize invoice if any of the following is true:
 
 ## Display Rules (Customer-Facing)
 
+Invoice header should display a single `delivery_date` (business rule: one invoice does not mix multiple delivery dates).
+
 ## Piece-based lines
 Show:
 - quantity in ordered UOM

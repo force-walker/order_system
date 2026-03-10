@@ -30,6 +30,10 @@ Owner: Koji
   - 欠品の場合の対応 (out-of-stock handling)
   - コメント (comment)
 - Purchase Result Registration must include final purchase unit cost input.
+- Order header requires `delivery_date` (different from order date; default next day).
+- Purchase result entry should show supplier and support sort/filter by supplier for faster operation.
+- Supplier may need to be changed at final purchase registration; DB/UI should allow override.
+- Invoice should display `delivery_date`; business rule is one delivery date per invoice (no mixed delivery dates).
 
 ## Outstanding Decisions (for Draft B)
 - Tax rounding policy (per-line and method: floor/round/ceil)
