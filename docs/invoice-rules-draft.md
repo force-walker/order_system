@@ -8,7 +8,7 @@ Support invoices that can contain both fixed-unit items and catch-weight items i
 ## Line Calculation Rules
 
 ## Rule A: Piece-based pricing
-When `pricing_basis = per_order_uom`
+When `pricing_basis = uom_count`
 
 `line_subtotal = ordered_qty × unit_price_order_uom`
 
@@ -18,9 +18,9 @@ Then:
 - `line_total = line_after_discount + line_tax`
 
 ## Rule B: Catch-weight pricing
-When `pricing_basis = per_kg`
+When `pricing_basis = uom_kg`
 
-`line_subtotal = actual_weight_kg × unit_price_per_kg`
+`line_subtotal = actual_weight_kg × unit_price_uom_kg`
 
 Then same discount/tax flow as above.
 
@@ -41,7 +41,7 @@ Tax is calculated per line using each line's `tax_code` (not invoice-level blank
 Cannot finalize invoice if any of the following is true:
 
 1. Catch-weight line missing `actual_weight_kg`
-2. Required price missing (`unit_price_per_kg` or `unit_price_order_uom`)
+2. Required price missing (`unit_price_uom_kg` or `unit_price_order_uom`)
 3. Negative totals after discount
 4. Referenced order line is cancelled/invalid
 5. Batch/operation state not eligible (if strict workflow enforced)
@@ -70,6 +70,11 @@ Recommended line description example:
 
 ---
 
+## Currency Rules
+- Purchase currency: `JPY`
+- Sales/Invoice currency: `HKD`
+- FX conversion rule (rate source + timing + rounding) must be fixed before production.
+
 ## Rounding Rules
 Define globally and keep fixed:
 
@@ -78,6 +83,11 @@ Define globally and keep fixed:
 - Tax rounding policy: per-line floor/round/ceil (must be explicit)
 
 All recalculations must happen server-side with identical rules.
+
+Meaning:
+- Client-side values are reference only; server result is authoritative.
+- Same input must always return same total/tax result.
+- Prevents mismatch across browser/device and improves audit reproducibility.
 
 ---
 

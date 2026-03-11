@@ -27,7 +27,7 @@ Master rules per item.
 - `invoice_uom` (varchar)
 - `is_catch_weight` (boolean, default false)
 - `weight_capture_required` (boolean, default false)
-- `pricing_basis_default` (`per_order_uom` | `per_kg`)
+- `pricing_basis_default` (`uom_count` | `uom_kg`)  ※`product_id`で固定
 - `rounding_weight_scale` (int, e.g., 3)
 - `rounding_amount_scale` (int, e.g., 0 for JPY)
 - `active` (boolean)
@@ -64,15 +64,13 @@ Line-level unit/weight/price details.
 - `id` (PK)
 - `order_id` (FK)
 - `product_id` (FK)
-- `ordered_qty` (numeric(12,3))
-- `ordered_uom` (varchar)
+- `ordered_qty` (numeric(12,2))
+- `order_uom_type` (`uom_count` | `uom_kg`, product masterから自動反映)
 - `estimated_weight_kg` (numeric(12,3), nullable)
-- `actual_weight_kg` (numeric(12,3), nullable)
-- `pricing_basis` (`per_order_uom` | `per_kg`)
+- `actual_weight_kg` (numeric(12,3), nullable)  ※受注時は不要、仕入結果登録で確定
+- `pricing_basis` (`uom_count` | `uom_kg`)  ※`product_id`で自動決定（手入力不可）
 - `unit_price_order_uom` (numeric(12,2), nullable)
 - `unit_price_per_kg` (numeric(12,2), nullable)
-- `discount_amount` (numeric(12,2), default 0)
-- `tax_code` (varchar)
 - `line_subtotal` (numeric(12,2), nullable or computed)
 - `line_tax` (numeric(12,2), nullable or computed)
 - `line_total` (numeric(12,2), nullable or computed)
@@ -81,8 +79,10 @@ Line-level unit/weight/price details.
 
 Validation rules:
 - `ordered_qty > 0`
-- If `pricing_basis = per_kg` then `unit_price_per_kg` required
-- If `pricing_basis = per_order_uom` then `unit_price_order_uom` required
+- `product_id`ごとに`is_catch_weight`と`order_uom_type`は一意（混在禁止）
+- If `pricing_basis = uom_kg` then `unit_price_per_kg` required
+- If `pricing_basis = uom_count` then `unit_price_order_uom` required
+- tax関連項目は請求時に扱う（受注時は不要）
 
 Indexes:
 - `idx_order_items_order_id`
@@ -129,10 +129,10 @@ Record actual buying outcome.
 - `supplier_id` (FK, default from allocation final supplier, editable at registration)
 - `purchased_qty` (numeric(12,3))
 - `purchased_uom` (varchar)
-- `actual_weight_kg` (numeric(12,3), nullable)
+- `actual_weight_kg` (numeric(12,3), nullable)  ※受注時は不要、仕入結果登録で確定
 - `unit_cost` (numeric(12,2), nullable)  ※初期記録
 - `final_unit_cost` (numeric(12,2), nullable)  ※最終仕入れ単価（確定値）
-- `currency` (varchar(3), default `JPY`)
+- `currency` (varchar(3), default `JPY`)  ※仕入通貨
 - `cost_uom` (varchar, e.g., `kg` / `piece`)
 - `is_final` (boolean, default false)
 - `result_status` (`full` | `partial` | `failed` | `substitute`)
@@ -152,6 +152,7 @@ Operational note:
 Billing output.
 
 `invoices`:
+- `currency` (varchar(3), default `HKD`)  ※販売通貨
 - `id` (PK)
 - `invoice_no` (unique)
 - `customer_id` (FK)

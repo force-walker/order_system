@@ -121,6 +121,8 @@ Purpose:
 
 Additional columns:
 - Supplier group total qty
+- Ordered Qty（受注数量）
+- Final Qty（発注数量）※発注時に使う数量
 - Supplier dispatch status
 - Last supplier response timestamp
 

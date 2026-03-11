@@ -14,11 +14,12 @@ Updated: 2026-03-10
 - 数量/重量/金額は `numeric/decimal`（float禁止）
 - 日付: `YYYY-MM-DD`
 - 日時: ISO8601 (`YYYY-MM-DDTHH:mm:ssZ`)
-- 通貨: `JPY`（MVP固定）
+- 仕入通貨: `JPY`
+- 販売/請求通貨: `HKD`
 - 真偽: `true/false`
 
 コード値（MVP）:
-- pricing_basis: `per_order_uom | per_kg`
+- pricing_basis: `uom_count | uom_kg`
 - stockout_policy: `backorder | substitute | cancel | partial_ok`
 - order_status: `new | confirmed | purchasing | shipped | delivered | invoiced | cancelled`
 - result_status: `full | partial | failed | substitute`
@@ -34,19 +35,17 @@ Request fields:
 - `customer_id` (int, required)
 - `order_datetime` (datetime, required)
 - `delivery_type` (string, required)
-- `delivery_date` (date, optional/推奨)
+- `delivery_date` (date, required)
 - `note` (string, optional)
 - `items[]` (required, min 1)
   - `product_id` (int, required)
-  - `ordered_qty` (decimal(12,3), required, >0)
-  - `ordered_uom` (string, required)
-  - `pricing_basis` (enum, required)
+  - `ordered_qty` (decimal(12,2), required, >0)
+  - `order_uom_type` (`uom_count`|`uom_kg`, productから自動反映)
+  - `pricing_basis` (enum, auto from product, read-only in request)
   - `unit_price_order_uom` (decimal(12,2), conditional)
   - `unit_price_per_kg` (decimal(12,2), conditional)
   - `estimated_weight_kg` (decimal(12,3), optional)
-  - `actual_weight_kg` (decimal(12,3), optional)
-  - `discount_amount` (decimal(12,2), optional default 0)
-  - `tax_code` (string, required)
+  - `actual_weight_kg` (not accepted at order create; registered at purchase result)
 
 Response fields:
 - `order_id` (int)
@@ -108,7 +107,7 @@ Request fields:
 - `actual_weight_kg` (decimal(12,3), optional)
 - `unit_cost` (decimal(12,2), optional)
 - `final_unit_cost` (decimal(12,2), optional)
-- `currency` (string(3), optional default JPY)
+- `currency` (string(3), optional default JPY, purchase currency)
 - `cost_uom` (string, optional)
 - `result_status` (enum, required)
 - `note` (optional)
@@ -128,7 +127,7 @@ Create request fields:
 - `order_id` (int, required)
 - `invoice_no` (string, required)
 - `invoice_date` (date, required)
-- `delivery_date` (date, optional/推奨)
+- `delivery_date` (date, required)
 
 Finalize hard-stops:
 - catch-weight line missing `actual_weight_kg`
@@ -155,7 +154,9 @@ Columns:
 - `customer_name`
 - `product_sku`
 - `product_name`
-- `final_qty`
+- `ordered_qty`（受注数量）
+- `ordered_uom_type`
+- `final_qty`（発注数量）
 - `final_uom`
 - `target_price`
 - `stockout_policy`
