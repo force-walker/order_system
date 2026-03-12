@@ -1,6 +1,6 @@
 # 帳票 / API I/O 定義 Draft (MVP)
 
-Updated: 2026-03-10
+Updated: 2026-03-12
 
 ## 目的
 - 画面・CSV・PDF・APIで使う項目名を統一
@@ -19,10 +19,10 @@ Updated: 2026-03-10
 - 真偽: `true/false`
 
 コード値（MVP）:
-- pricing_basis: `uom_count | uom_kg`
-- stockout_policy: `backorder | substitute | cancel | partial_ok`
-- order_status: `new | confirmed | purchasing | shipped | delivered | invoiced | cancelled`
-- result_status: `full | partial | failed | substitute`
+- `order_uom_type`: `uom_count | uom_kg`
+- `stockout_policy`: `backorder | substitute | cancel | partial_ok`
+- `order_status`: `new | confirmed | purchasing | shipped | delivered | invoiced | cancelled`
+- `result_status`: `full | partial | failed | substitute`
 
 ---
 
@@ -36,16 +36,21 @@ Request fields:
 - `order_datetime` (datetime, required)
 - `delivery_type` (string, required)
 - `delivery_date` (date, required)
-- `note` (string, optional)
+- `delivery_note` (string, optional)
 - `items[]` (required, min 1)
   - `product_id` (int, required)
   - `ordered_qty` (decimal(12,2), required, >0)
   - `order_uom_type` (`uom_count`|`uom_kg`, productから自動反映)
-  - `pricing_basis` (enum, auto from product, read-only in request)
-  - `unit_price_order_uom` (decimal(12,2), conditional)
-  - `unit_price_per_kg` (decimal(12,2), conditional)
   - `estimated_weight_kg` (decimal(12,3), optional)
-  - `actual_weight_kg` (not accepted at order create; registered at purchase result)
+  - `price_ceiling` (decimal(12,2), optional)
+  - `stockout_policy` (enum, optional)
+  - `comment` (string, optional)
+
+Notes:
+- `pricing_basis` は `product_id` から自動決定（requestでは受け付けない）
+- `unit_price_order_uom` / `unit_price_per_kg` は受注作成時には入力不要
+- `actual_weight_kg` は受注作成時には入力しない（仕入結果登録時に確定）
+- tax関連項目は受注時には扱わない（請求時に適用）
 
 Response fields:
 - `order_id` (int)
@@ -87,7 +92,7 @@ Request fields:
 - `overridden_by` (required)
 
 Validation:
-- sum(parts.final_qty) == parent allocation qty
+- `sum(parts.final_qty) == parent allocation qty`
 - UOM consistency check
 
 Response fields:
@@ -128,6 +133,7 @@ Create request fields:
 - `invoice_no` (string, required)
 - `invoice_date` (date, required)
 - `delivery_date` (date, required)
+- `currency` (string(3), default HKD)
 
 Finalize hard-stops:
 - catch-weight line missing `actual_weight_kg`
@@ -184,6 +190,7 @@ Header fields:
 - `invoice_date`
 - `delivery_date`
 - `customer_name`
+- `currency`（HKD）
 
 Line fields:
 - `description`
@@ -218,6 +225,6 @@ Totals:
 ---
 
 ## 5) 確定事項（2026-03-11 FIX）
-- `delivery_date` はAPI必須項目とする（Defaultは注文日の翌日、手動変更可）
+- `delivery_date` はAPI必須項目（Defaultは注文日の翌日、手動変更可）
 - `target_price` は通常は任意。ただし `override_reason_code=better_price` または `urgent_delivery` の場合は必須
 - supplier は自分の担当行に限り `final_unit_cost` を更新可（監査ログ必須）。ただし請求確定前に buyer/admin が最終確認を行う
