@@ -78,3 +78,7 @@ This package is draft-level functional specification for MVP planning and implem
 14. `docs/permission-change-policy.md`
    - 権限変更の原則と運用手順
    - supplier入力補助 / buyer最終validation方針と将来拡張パターン
+
+15. `docs/IO_from_order_to_invoice.xlsx`
+   - Order→InvoiceのI/Oマトリクス（Excel版）
+   - 入力/出力/継承元 + Allowed values / Validation rule / System of record
