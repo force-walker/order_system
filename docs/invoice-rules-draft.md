@@ -35,6 +35,24 @@ Tax is calculated per line using each line's `tax_code` (not invoice-level blank
 - `invoice_tax_total = Σ line_tax`
 - `invoice_grand_total = invoice_subtotal + invoice_tax_total`
 
+
+## Rule F: Sales unit price + gross margin fields
+At invoice calculation stage, system stores:
+- `sales_unit_price` (customer-facing sales unit price used for billing)
+- `gross_margin_rate` (internal metric, not printed)
+
+Gross margin formula:
+`gross_margin_rate = (sales_unit_price - unit_cost_basis) / unit_cost_basis`
+
+If one invoice line is sourced from multiple purchase results (split procurement),
+`unit_cost_basis` must be weighted average cost:
+
+`unit_cost_basis = Σ(purchased_qty_i × final_unit_cost_i) / Σ(purchased_qty_i)`
+
+Notes:
+- Weighted average is calculated in purchase UOM-consistent basis.
+- `gross_margin_rate` is internal-only and excluded from customer invoice PDF.
+
 ---
 
 ## Finalization Constraints (Hard Stops)
@@ -49,6 +67,8 @@ Cannot finalize invoice if any of the following is true:
 ---
 
 ## Display Rules (Customer-Facing)
+
+- `gross_margin_rate` is not displayed on customer-facing invoice/PDF.
 
 Invoice header should display a single `delivery_date` (business rule: one invoice does not mix multiple delivery dates).
 

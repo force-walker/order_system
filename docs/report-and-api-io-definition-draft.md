@@ -143,6 +143,9 @@ Finalize hard-stops:
 Finalize response fields:
 - `invoice_id` (int)
 - `status` (`finalized`)
+- `sales_unit_price` (decimal(12,2), required)
+- `unit_cost_basis` (decimal(12,2), optional/internal)
+- `gross_margin_rate` (decimal(8,4), optional/internal)
 
 ---
 
@@ -184,6 +187,12 @@ Columns:
 
 ---
 
+## 粗利計算ルール（内部）
+- `gross_margin_rate = (sales_unit_price - unit_cost_basis) / unit_cost_basis`
+- split仕入れ時の `unit_cost_basis` は加重平均:
+  - `Σ(purchased_qty_i × final_unit_cost_i) / Σ(purchased_qty_i)`
+- `gross_margin_rate` は内部項目であり、請求書PDFには出力しない
+
 ## 3.3 請求書PDF（顧客向け）
 Header fields:
 - `invoice_no`
@@ -205,6 +214,9 @@ Totals:
 - `subtotal`
 - `tax_total`
 - `grand_total`
+
+Not printed on PDF:
+- `gross_margin_rate`（内部項目のため非表示）
 
 ---
 

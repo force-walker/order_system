@@ -171,7 +171,9 @@ Billing output.
 - `qty_display` (numeric)
 - `uom_display` (varchar)
 - `weight_kg` (nullable)
-- `unit_price`
+- `sales_unit_price` (numeric(12,2))  ※販売単価
+- `unit_cost_basis` (numeric(12,2), nullable)  ※粗利計算用原価（split時は加重平均）
+- `gross_margin_rate` (numeric(8,4), nullable)  ※内部管理用（帳票非表示）
 - `amount`
 - `tax_code`, `tax_amount`
 
