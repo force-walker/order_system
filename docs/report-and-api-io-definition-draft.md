@@ -22,6 +22,7 @@ Updated: 2026-03-12
 - `order_uom_type`: `uom_count | uom_kg`
 - `stockout_policy`: `backorder | substitute | cancel | partial_ok`
 - `order_status`: `new | confirmed | purchasing | shipped | delivered | invoiced | cancelled`
+- `line_status`: `open | allocated | purchased | invoiced | cancelled`
 - `result_status`: `full | partial | failed | substitute`
 
 ---

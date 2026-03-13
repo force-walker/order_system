@@ -72,6 +72,20 @@ Suggested cancel reason codes:
 
 ---
 
+## Line status policy (`order_items.line_status`)
+
+Line-level processing status is managed separately from order header status.
+
+Allowed values (MVP):
+- `open`
+- `allocated`
+- `purchased`
+- `invoiced`
+- `cancelled`
+
+Recommended progression:
+`open -> allocated -> purchased -> invoiced` (+ `cancelled` by policy)
+
 ## Audit requirements
 
 Every state change must store:
