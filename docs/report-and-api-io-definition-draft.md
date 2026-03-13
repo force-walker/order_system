@@ -71,7 +71,7 @@ Request fields:
 - `comment` (string, optional)
 - `override_reason_code` (string, required)
 - `override_note` (string, optional)
-- `overridden_by` (string, required)
+- `overridden_by` (string, derived from authenticated user; request input not accepted)
 
 Response fields:
 - `ok` (bool)
@@ -89,7 +89,7 @@ Request fields:
   - `final_uom` (string, required)
 - `override_reason_code` (required)
 - `override_note` (optional)
-- `overridden_by` (required)
+- `overridden_by` (derived from authenticated user; request input not accepted)
 
 Validation:
 - `sum(parts.final_qty) == parent allocation qty`
@@ -113,9 +113,8 @@ Request fields:
 - `unit_cost` (decimal(12,2), optional)
 - `final_unit_cost` (decimal(12,2), optional)
 - `currency` (string(3), optional default JPY, purchase currency)
-- `cost_uom` (string, optional)
 - `result_status` (enum, required)
-- `note` (optional)
+- `comment` (optional)
 
 Response fields:
 - `purchase_result_id` (int)
@@ -144,7 +143,7 @@ Finalize response fields:
 - `invoice_id` (int)
 - `status` (`finalized`)
 - `sales_unit_price` (decimal(12,2), required)
-- `unit_cost_basis` (decimal(12,2), optional/internal)
+- `unit_cost_basis` (decimal(12,2), required/internal)
 - `gross_margin_rate` (decimal(8,4), optional/internal)
 
 ---
@@ -183,7 +182,7 @@ Columns:
 - `unit_cost`
 - `final_unit_cost`
 - `result_status`
-- `note`
+- `comment`
 
 ---
 

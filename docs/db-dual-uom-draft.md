@@ -49,7 +49,7 @@ Order header.
 - `delivery_address_snapshot` (text/json)
 - `payment_method` (nullable)
 - `payment_status` (nullable)
-- `status` (`new` | `confirmed` | `purchasing` | `shipped` | `delivered` | `completed` | `cancelled`)
+- `status` (`new` | `confirmed` | `purchasing` | `shipped` | `delivered` | `invoiced` | `cancelled`)
 - `note` (nullable)
 - `created_by`, `created_at`, `updated_at`
 
@@ -133,12 +133,11 @@ Record actual buying outcome.
 - `unit_cost` (numeric(12,2), nullable)  ※初期記録
 - `final_unit_cost` (numeric(12,2), nullable)  ※最終仕入れ単価（確定値）
 - `currency` (varchar(3), default `JPY`)  ※仕入通貨
-- `cost_uom` (varchar, e.g., `kg` / `piece`)
 - `is_final` (boolean, default false)
 - `result_status` (`full` | `partial` | `failed` | `substitute`)
 - `recorded_by` (FK user)
 - `recorded_at` (timestamp)
-- `note` (nullable)
+- `comment` (nullable)
 
 Indexes:
 - `idx_purchase_results_allocation_id`
@@ -160,7 +159,7 @@ Billing output.
 - `delivery_date` (date, single date per invoice)
 - `due_date` (nullable)
 - `subtotal`, `tax_total`, `grand_total`
-- `status` (`draft` | `finalized` | `sent` | `paid` | `cancelled`)
+- `status` (`draft` | `finalized` | `sent` | `cancelled`)
 - `created_by`, `created_at`, `updated_at`
 
 `invoice_items`:
