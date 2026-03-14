@@ -27,12 +27,12 @@ Then same discount/tax flow as above.
 ## Rule C: Discount precedence
 Discount is applied before tax.
 
-## Rule D: Tax by line
-Tax is calculated per line using each line's `tax_code` (not invoice-level blanket tax).
+## Rule D: Tax on invoice total (not by line)
+Tax is calculated on invoice-level taxable total.
 
 ## Rule E: Invoice total
 - `invoice_subtotal = Σ line_subtotal_after_discount`
-- `invoice_tax_total = Σ line_tax`
+- `invoice_tax_total = floor(invoice_subtotal × tax_rate)`
 - `invoice_grand_total = invoice_subtotal + invoice_tax_total`
 
 
@@ -98,9 +98,9 @@ Recommended line description example:
 ## Rounding Rules
 Define globally and keep fixed:
 
-- Weight rounding: e.g., 3 decimals (`0.001 kg`)
-- Currency rounding: JPY integer (`0` decimals) unless business rule differs
-- Tax rounding policy: per-line floor/round/ceil (must be explicit)
+- Weight rounding: 3 decimals (`0.001 kg`)
+- Currency rounding: JPY integer (`0` decimals), HKD 2 decimals
+- Tax rounding policy: invoice-level floor (`floor(invoice_subtotal × tax_rate)`)
 
 All recalculations must happen server-side with identical rules.
 

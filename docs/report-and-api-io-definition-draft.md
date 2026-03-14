@@ -173,7 +173,7 @@ Create request fields:
 - `payment_terms` (string, optional)
 - `due_date` (date, optional)
 - `tax_rate` (decimal, optional)
-- `tax_amount` (decimal, calculated)
+- `tax_amount` (decimal, calculated as `floor(total_amount_pretax × tax_rate)`)
 - `total_amount_pretax` (decimal, calculated)
 - `total_amount` (decimal, calculated)
 - `currency` (string(3), default HKD)
@@ -182,6 +182,7 @@ Finalize hard-stops:
 - catch-weight line missing `actual_weight_kg`
 - required unit price missing
 - negative total
+- tax mismatch against invoice-level formula (`floor(total_amount_pretax × tax_rate)`)
 
 Finalize response fields:
 - `invoice_id` (int)
@@ -256,7 +257,7 @@ Line fields:
 
 Totals:
 - `subtotal`
-- `tax_total`
+- `tax_total`（invoice totalに対して課税し、`floor`で丸め）
 - `grand_total`
 
 Not printed on PDF:
