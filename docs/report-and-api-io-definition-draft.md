@@ -1,11 +1,16 @@
 # 帳票 / API I/O 定義 Draft (MVP)
 
-Updated: 2026-03-12
+Updated: 2026-03-14
 
 ## 目的
 - 画面・CSV・PDF・APIで使う項目名を統一
 - 必須/任意、型、フォーマット、コード値を固定
 - 実装とUATの判定基準にする
+
+## Source of Truth
+- I/O定義の正は `docs/IO_from_order_to_invoice_revised_v_2.xlsx` とする。
+- 本書は上記Excelに追従する要約仕様。
+- 差分が出た場合はExcelを優先し、本書を更新する。
 
 ---
 
@@ -25,6 +30,12 @@ Updated: 2026-03-12
 - `line_status`: `open | allocated | purchased | invoiced | cancelled`
 - `result_status`: `full | partial | failed | substitute`
 
+Direction（固定語彙）:
+- `input | derived | generated | validation | output_rule`
+
+Entry Method（normalized 固定語彙）:
+- `manual | lookup_select | auto_default | auth_context | system_timestamp | rule_engine | calculated | n/a`
+
 ---
 
 ## 2) API I/O 定義（主要）
@@ -33,11 +44,22 @@ Updated: 2026-03-12
 - Endpoint: `POST /api/orders`
 
 Request fields:
-- `customer_id` (int, required)
+- `customer_id` (int, required, lookup_select)
+- `customer_name` (string, derived)
+- `customer_address` (string, derived)
 - `order_datetime` (datetime, required)
 - `delivery_type` (string, required)
 - `delivery_date` (date, required)
 - `delivery_note` (string, optional)
+- `order_status` (enum, derived)
+- `billing_customer_id` (int, required, lookup_select)
+- `billing_address` (string, derived)
+- `order_source` (string, optional)
+- `cutoff_datetime` (datetime, derived)
+- `created_at` (datetime, generated)
+- `created_by` (string/int, derived from auth_context)
+- `updated_at` (datetime, generated)
+- `updated_by` (string/int, derived from auth_context)
 - `items[]` (required, min 1)
   - `product_id` (int, required)
   - `ordered_qty` (decimal(12,2), required, >0)
@@ -46,6 +68,7 @@ Request fields:
   - `price_ceiling` (decimal(12,2), optional)
   - `stockout_policy` (enum, optional)
   - `comment` (string, optional)
+  - `line_status` (enum, derived)
 
 Notes:
 - `pricing_basis` は `product_id` から自動決定（requestでは受け付けない）
@@ -57,6 +80,17 @@ Response fields:
 - `order_id` (int)
 - `order_no` (string)
 - `item_count` (int)
+
+---
+
+## 2.1.1 Order Change After Cutoff
+- `change_reason` (string, required)
+- `procurement_list_regeneration` (boolean, required)
+- `allocation_preservation_on_regeneration` (boolean, conditional)
+
+Policy:
+- cutoff後は order creator / admin のみ変更可
+- 変更時は理由必須、監査ログ必須
 
 ---
 
@@ -133,6 +167,15 @@ Create request fields:
 - `invoice_no` (string, required)
 - `invoice_date` (date, required)
 - `delivery_date` (date, required)
+- `invoice_customer_id` (int, required)
+- `invoice_customer_name` (string, derived)
+- `invoice_customer_address` (string, derived)
+- `payment_terms` (string, optional)
+- `due_date` (date, optional)
+- `tax_rate` (decimal, optional)
+- `tax_amount` (decimal, calculated)
+- `total_amount_pretax` (decimal, calculated)
+- `total_amount` (decimal, calculated)
 - `currency` (string(3), default HKD)
 
 Finalize hard-stops:
@@ -191,6 +234,7 @@ Columns:
 - `gross_margin_rate = (sales_unit_price - unit_cost_basis) / unit_cost_basis`
 - split仕入れ時の `unit_cost_basis` は加重平均:
   - `Σ(purchased_qty_i × final_unit_cost_i) / Σ(purchased_qty_i)`
+- 請求行は `billable_qty` / `billable_uom` を基準に算出する
 - `gross_margin_rate` は内部項目であり、請求書PDFには出力しない
 
 ## 3.3 請求書PDF（顧客向け）

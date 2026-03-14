@@ -43,15 +43,21 @@ Order header.
 - `id` (PK)
 - `order_no` (unique)
 - `customer_id` (FK)
+- `customer_name` (snapshot)
+- `customer_address` (snapshot)
+- `billing_customer_id` (FK)
+- `billing_address` (snapshot)
 - `order_datetime`
 - `delivery_date` (date, default: order date + 1 day, editable)
 - `delivery_type` (`delivery` | `pickup`)
 - `delivery_address_snapshot` (text/json)
+- `order_source` (nullable)
+- `cutoff_datetime` (timestamp)
 - `payment_method` (nullable)
 - `payment_status` (nullable)
 - `status` (`new` | `confirmed` | `purchasing` | `shipped` | `delivered` | `invoiced` | `cancelled`)
 - `note` (nullable)
-- `created_by`, `created_at`, `updated_at`
+- `created_by`, `created_at`, `updated_by`, `updated_at`
 
 Indexes:
 - `idx_orders_customer_id`
@@ -132,9 +138,14 @@ Record actual buying outcome.
 - `actual_weight_kg` (numeric(12,3), nullable)  ※受注時は不要、仕入結果登録で確定
 - `unit_cost` (numeric(12,2), nullable)  ※初期記録
 - `final_unit_cost` (numeric(12,2), nullable)  ※最終仕入れ単価（確定値）
+- `transport_cost` (numeric(12,2), nullable)
 - `currency` (varchar(3), default `JPY`)  ※仕入通貨
 - `is_final` (boolean, default false)
 - `result_status` (`full` | `partial` | `failed` | `substitute`)
+- `final_billable_qty` (numeric(12,3), nullable)
+- `final_billable_uom` (varchar, nullable)
+- `invoiceable_flag` (boolean, default true)
+- `invoice_block_reason` (nullable)
 - `recorded_by` (FK user)
 - `recorded_at` (timestamp)
 - `comment` (nullable)
@@ -155,10 +166,14 @@ Billing output.
 - `id` (PK)
 - `invoice_no` (unique)
 - `customer_id` (FK)
+- `invoice_customer_name` (snapshot)
+- `invoice_customer_address` (snapshot)
 - `invoice_date`
 - `delivery_date` (date, single date per invoice)
+- `payment_terms` (nullable)
 - `due_date` (nullable)
 - `subtotal`, `tax_total`, `grand_total`
+- `tax_rate` (nullable)
 - `status` (`draft` | `finalized` | `sent` | `cancelled`)
 - `created_by`, `created_at`, `updated_at`
 
@@ -170,11 +185,15 @@ Billing output.
 - `qty_display` (numeric)
 - `uom_display` (varchar)
 - `weight_kg` (nullable)
+- `billable_qty` (numeric(12,3), nullable)
+- `billable_uom` (varchar, nullable)
 - `sales_unit_price` (numeric(12,2))  ※販売単価
-- `unit_cost_basis` (numeric(12,2), nullable)  ※粗利計算用原価（split時は加重平均）
+- `unit_cost_basis` (numeric(12,2))  ※粗利計算用原価（split時は加重平均）
 - `gross_margin_rate` (numeric(8,4), nullable)  ※内部管理用（帳票非表示）
 - `amount`
-- `tax_code`, `tax_amount`
+- `line_amount` (numeric(12,2), nullable)
+- `discount` (numeric(12,2), nullable)
+- `tax_code`, `tax_amount`, `line_tax_amount`
 
 ## 7) `audit_logs`
 Required for critical/no-error operations.

@@ -1,6 +1,6 @@
 # Status Transition Draft (Order Lifecycle)
 
-Updated: 2026-03-10
+Updated: 2026-03-14
 
 ## Final status policy (MVP)
 
@@ -85,6 +85,13 @@ Allowed values (MVP):
 
 Recommended progression:
 `open -> allocated -> purchased -> invoiced` (+ `cancelled` by policy)
+
+## Cutoff / edit policy
+
+- cutoff前: 通常権限で編集可
+- cutoff後: order creator / Admin のみ編集可
+- cutoff後に変更する場合は `change_reason` 必須
+- cutoff後に明細変更した場合、`procurement_list_regeneration` の実行要否を記録
 
 ## Audit requirements
 
