@@ -28,7 +28,7 @@ Updated: 2026-03-14
 - `stockout_policy`: `backorder | substitute | cancel | partial_ok`
 - `order_status`: `new | confirmed | purchasing | shipped | delivered | invoiced | cancelled`
 - `line_status`: `open | allocated | purchased | invoiced | cancelled`
-- `result_status`: `full | partial | failed | substitute`
+- `result_status`: `not_filled | filled | partially_filled | substituted`
 
 Direction（固定語彙）:
 - `input | derived | generated | validation | output_rule`
@@ -148,12 +148,18 @@ Request fields:
 - `unit_cost` (decimal(12,2), optional)
 - `final_unit_cost` (decimal(12,2), optional)
 - `currency` (string(3), optional default JPY, purchase currency)
-- `result_status` (enum, required)
+- `result_status` (enum, required: `not_filled|filled|partially_filled|substituted`)
+- `shortage_qty` (decimal(12,3), derived)
+- `shortage_policy` (enum, conditional: `backorder|cancel|substitute|split`)
+- `shortage_reason_code` (enum, conditional: `stockout|quality_issue|delivery_delay|supplier_reject|manual_adjustment`)
+- `shortage_note` (string, conditional; required when `shortage_reason_code=manual_adjustment`)
 - `comment` (optional)
 
 Response fields:
 - `purchase_result_id` (int)
 - `result_status` (enum)
+- `invoiceable_flag` (bool)
+- `invoice_block_reason` (string, nullable)
 
 ---
 
@@ -281,7 +287,13 @@ Not printed on PDF:
 
 ---
 
-## 5) 確定事項（2026-03-11 FIX）
+## 5) 確定事項（2026-03-15 FIX）
 - `delivery_date` はAPI必須項目（Defaultは注文日の翌日、手動変更可）
 - `target_price` は通常は任意。ただし `override_reason_code=better_price` または `urgent_delivery` の場合は必須
 - supplier は自分の担当行に限り `final_unit_cost` を更新可（監査ログ必須）。ただし請求確定前に buyer/admin が最終確認を行う
+- 税は invoice total に対して課税し、`floor(total_amount_pretax × tax_rate)` で丸める
+- shortage処理は `backorder|cancel|substitute|split` を許可
+- shortage reason code は `stockout|quality_issue|delivery_delay|supplier_reject|manual_adjustment`
+- `manual_adjustment` をMVPで許可（`shortage_note` 必須）
+- `delivery_delay` は全選択肢（backorder限定なし）
+- `quality_issue` は優先ポリシーなし

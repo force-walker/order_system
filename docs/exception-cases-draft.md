@@ -1,6 +1,6 @@
 # Exception Cases Draft (MVP)
 
-Updated: 2026-03-10
+Updated: 2026-03-15
 
 ## Goal
 Define operational exception patterns so users can act consistently and system behavior is deterministic.
@@ -13,11 +13,13 @@ Define operational exception patterns so users can act consistently and system b
 - Situation: Supplier can fulfill only part of requested qty.
 - Inputs:
   - available qty
-  - remaining qty
+  - remaining qty (`shortage_qty`)
   - customer priority
 - Required action:
-  - record `result_status=partial`
-  - set handling policy (`partial_ok` / `backorder` / `cancel`)
+  - record `result_status=partially_filled`
+  - set shortage policy (`backorder` / `cancel` / `substitute` / `split`)
+  - set `shortage_reason_code`
+  - if reason is `manual_adjustment`, `shortage_note` is mandatory
   - notify customer-facing note
 - Audit: mandatory
 
@@ -38,8 +40,9 @@ Define operational exception patterns so users can act consistently and system b
   - price delta
   - customer approval flag
 - Required action:
-  - mark `result_status=substitute`
+  - mark `result_status=substituted`
   - preserve original line reference
+  - create substitute line mapping (`original_line_id -> substitute_line_id`)
 - Audit: mandatory
 
 ## E4. Catch-weight missing actual weight
@@ -95,7 +98,14 @@ Define operational exception patterns so users can act consistently and system b
 
 ---
 
+## Shipped transition gate (shortage-aware)
+Transition `purchased -> shipped` is blocked unless all active lines satisfy:
+- `result_status != not_filled`
+- Required fields entered (`supplier_id`, `purchased_qty`, `final_unit_cost`, `result_status`)
+- If `shortage_qty > 0`, shortage policy and reason are fixed
+- if `invoiceable_flag=false`, block reason is explicitly recorded
+
 ## Open decisions for next refinement
 - Which exception cases require supervisor approval?
-- SLA for unresolved partial/backorder cases
+- SLA for unresolved backorder cases
 - Customer notification ownership (Order Entry vs Buyer)
