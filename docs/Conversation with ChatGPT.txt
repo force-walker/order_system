@@ -1,0 +1,1393 @@
+Conversation with ChatGPT
+
+Order systemの要件定義の一部で各ステージのI/Oを示している。
+こちらを評価してください。
+
+Thought for 27s
+
+はい。全体としてはかなり良いです。
+特に、単なる項目一覧ではなく、**各ステージでの入力/出力、継承元、利用先、バリデーション、SoR（System of Record）**まで置いているのは、開発依頼資料として強いです。
+
+評価すると、70〜80点台後半です。
+そのままでも議論は進められますが、実装時に事故になりやすい曖昧さが少し残っています。
+
+良い点
+1. I/Oの粒度が実務寄り
+
+Order Create
+
+Order Item
+
+Allocation
+
+Purchase Result
+
+Invoice Create / Line / Finalize / Print
+
+この分け方は自然です。
+特に Orderヘッダのstatus と 明細line_status を分けているのは良いです。実務ではここを分けないと、部分買付・部分請求に弱くなります。
+
+2. “Direction” と “Inherited From” がある
+
+input / output / derived / validation を分けているので、
+「誰が入力するのか」「どこから持ってくるのか」が見えやすいです。
+OpenClaw側でも、画面設計・API設計・DB設計に落としやすいです。
+
+3. バリデーション意識がある
+
+must exist in customers/products/suppliers
+
+must follow transition rule
+
+required when pricing basis = uom_kg
+
+sum(children)=parent
+
+このあたりは、ミスが許されない運用に合っています。
+
+4. 請求書PDFに内部粗利を出さないルールが明記されている
+
+これは地味ですが重要です。
+Invoice Print(PDF) -> gross_margin_rate excluded はとても良いです。
+
+気になる点
+A. “I/O Matrix”なのに、業務イベント単位の入出力境界が少し曖昧
+
+今の表は「項目辞書」と「I/O」が混ざっています。
+
+たとえば Allocation にある
+
+supplier_id
+
+allocated_qty
+
+allocation_confidence
+
+override_reason_code
+
+は、
+自動割当結果の出力なのか、
+買い付け担当が修正入力する項目なのか、
+確定時点の保存値なのかが少し曖昧です。
+
+なので、各ステージを次の3つに分けるとさらに強くなります。
+
+Input: 画面/APIで受けるもの
+
+System Output: システムが返すもの
+
+Persisted Result: DBに最終保存されるもの
+
+今は output と generated が混在していて、APIレスポンスなのかDB更新結果なのか読み手によって解釈が割れます。
+
+B. “required / optional / auto / excluded / conditional” の定義が揃っていない
+
+Req 列に
+
+required
+
+optional
+
+auto
+
+conditional
+
+excluded
+
+が出ていますが、これは必須性と入力方式が混ざっています。
+
+たとえば auto は本来 Req ではなく Direction/Entry Method 側の概念です。
+整理するならこうです。
+
+Req: required / optional / conditional / prohibited
+
+Entry Method: input / derived / generated / inherited
+
+この分離をすると、実装者が迷いにくいです。
+
+C. ヘッダと明細の関係ルールが不足
+
+現状でも status は分かれていますが、次が未定義です。
+
+ヘッダ order_status が confirmed になる条件
+
+明細が一部 allocated、一部 open のときヘッダは何になるか
+
+一部だけ cancelled のとき請求可か
+
+Purchase Result が partial の場合の Invoice Create 条件
+
+invoice は order単位 か delivery_date単位 か customer締日単位 か
+
+ここは必須です。
+今の業務だと、部分買付・部分請求の扱いが一番事故りやすいです。
+
+D. 数量・単位まわりはまだ危ない
+
+この表ではかなり意識されていますが、まだ詰めるべきです。
+
+特に気になるのは:
+
+ordered_qty と allocated_qty と purchased_qty の桁数が一致していない場面がある
+
+child final_qty sum に final_qty が出てくるが、表のどこにも final_qty が明示されていない
+
+purchase_uom と purchased_uom の関係が弱い
+
+pricing_basis=uom_kg のとき、請求数量は actual_weight_kg なのか、別の billed_weight なのか不明
+
+ここは業務上かなり重要です。
+おすすめは数量を明示的に分けることです。
+
+ordered_qty
+
+allocated_qty
+
+purchased_qty
+
+billable_qty
+
+actual_weight_kg
+
+billed_weight_kg
+
+特に請求に使う最終数量は別名で固定した方がいいです。
+
+E. 請求ステージがやや弱い
+
+Invoice Create 側に以下が足りません。
+
+請求先名
+
+請求先住所
+
+支払条件
+
+支払期限
+
+invoice_to_customer_id
+
+billing_cutoff_period
+
+invoice_status と order_status の関係
+
+請求書再発行/取消ルール
+
+業務で請求書を作るなら、
+受注時点の customer_address と、請求先情報は同じとは限りません。
+納品先 と 請求先 は分けた方が安全です。
+
+F. 監査要件はあるが、ロック要件が弱い
+
+あなたの運用だと時間制約が厳しいので、ここはもっと強く書いた方がいいです。
+
+不足している要件:
+
+cutoff後の編集可否
+
+invoice確定後の編集禁止
+
+override時の承認要否
+
+誰が何を変えたかの監査ログ
+
+再計算トリガー（価格・数量変更時）
+
+override_note, overridden_by, override_reason_code はあります。
+ただし 「いつ変更できるか」 が弱いです。
+
+G. 用語の揺れが少しある
+
+例:
+
+partner_master と customer / supplier
+
+Order Create response と Order Item Create response
+
+Generated と generated
+
+New と new
+
+int（user_id） の全角混在
+
+小さく見えますが、実装時に仕様解釈差が出やすいです。
+ここは統一した方がいいです。
+
+優先度高めで追加したい項目
+
+まずこの7つを追加すると、一気に実務仕様になります。
+
+1. cutoff_datetime
+
+受注締切日時
+
+cutoff後編集禁止
+
+admin overrideのみ可
+
+2. order_source
+
+phone / email / fax / manual など
+
+あとでミス調査しやすい
+
+3. billing_customer_id / billing_address
+
+納品先と請求先を分離
+
+4. final_billable_qty
+
+請求に使う最終数量
+
+kg課金と個数課金の境界を明確化
+
+5. tax_amount / line_tax_amount
+
+請求で必要
+
+0税率でも列は持つ方が良い
+
+6. invoiceable_flag / block_reason
+
+請求可能かどうか
+
+不足重量、価格未確定、仕入未完了などを止める
+
+7. audit columns
+
+created_at / created_by / updated_at / updated_by
+
+各主要テーブルに必要
+
+一番重要な修正ポイント
+
+この資料をOpenClawに出す前に、最低限ここだけ直すと良いです。
+
+修正1
+
+Req と Direction の意味を分離する
+
+修正2
+
+各ステージごとに
+
+受け取る入力
+
+システムが返す出力
+
+DBに保存される結果
+を分ける
+
+修正3
+
+数量系を
+
+ordered
+
+allocated
+
+purchased
+
+billable
+に整理する
+
+修正4
+
+請求先と納品先を分ける
+
+修正5
+
+ロック/締切/修正権限を明文化する
+
+総評
+
+方向性はかなり良いです。
+特に、単なる画面要件ではなく、データと業務遷移を結びつけているのが強いです。
+
+ただし今のままだと、開発側は
+「これはAPIの入出力なのか」
+「これは画面入力なのか」
+「確定値なのか提案値なのか」
+で少し迷います。
+
+なので、この表はベースとして非常に良いですが、次の段階では
+
+用語統一
+
+入出力境界の明確化
+
+数量/請求ロジックの確定
+
+締切と監査ルールの追加
+
+を入れるべきです。
+
+必要なら次に、あなたのこのExcelを前提に
+**「OpenClaw提出用のレビューコメント一覧」**として、
+「修正必須 / 推奨 / 後回し」で整理して書きます。
+
+
+アドバイスどおりに修正したエクセルファイルを作成できますか？
+行、列の追加はしても削除はしないでください。
+不要な行、列があれば、別途こちらのChatで教えてください
+
+元の表を崩さず、追加だけで整えた改訂版を作ります。不要に見える行や列は、ファイルとは別に最後にテキストでお伝えします。
+
+Thought for 11m 8s
+
+作成しました。
+
+IO_from_order_to_invoice_revised.xlsx
+Sheet1
+Sheet2
+
+別途メモです。削除はしていませんが、不要候補は以下です。
+
+Sheet2
+line_status だけの断片的な内容で、作業用の残りに見えます。
+
+T列（空列）
+元ファイル側の空列が、今回の列追加で後ろへずれたものです。現状データは入っていません。
+
+target_price と price_ceiling
+意味がかなり近いので、運用上同じなら将来どちらかに統一候補です。今回は残しています。
+
+Invoice請求先情報だが、このような記載ではどうか？ 
+Thought for a couple of seconds
+
+かなり良いです。
+**「Invoice Createで請求先情報を持つ」**こと自体は正しい方向です。
+
+ただ、この書き方だと少しだけ危ない点があります。
+結論としては、そのままでも通じるが、orders継承だけに見せない方が安全です。
+
+良い点
+
+invoice customer id / name / address を Invoice Create側に明示している
+
+すべて required にしている
+
+Used By = invoice で、請求書生成に使うことが分かる
+
+これは良いです。
+「納品先ではなく、請求書が参照する請求先情報」を請求ステージに持たせるのは正解です。
+
+気になる点
+
+今の記載だと、
+
+Inherited From = orders
+
+Default = orders.customer_id / name / address
+
+となっているので、
+“受注時のcustomer情報をそのまま請求先に使う” という意味にかなり寄っています。
+
+でも実務上は、次のケースがあります。
+
+納品先と請求先が違う
+
+受注時の顧客住所と、請求書送付先住所が違う
+
+月次請求で、請求先は本社、納品先は店舗
+
+請求書発行時点で請求先情報を確定・固定したい
+
+なので、invoice側でスナップショットとして保持することをもっと明確にした方がいいです。
+
+おすすめ修正
+1. Inherited From
+
+今の orders だけだと少し弱いです。
+できればこうしたいです。
+
+Inherited From = billing info on order / customer master
+または
+
+Inherited From = orders.billing_customer_* or customer master
+
+つまり、
+受注の請求先情報欄から継承するのか
+顧客マスタから引くのか
+を分けた方がいいです。
+
+2. Default
+
+orders.customer_name ではなく、できれば請求先専用の名前に寄せたいです。
+
+理想はこうです。
+
+orders.billing_customer_id
+
+orders.billing_customer_name
+
+orders.billing_customer_address
+
+まだorders側にその列がないなら、少なくとも仕様上は
+
+Default = copied from order billing info at invoice creation
+
+のようにしておくと安全です。
+
+3. Direction
+
+derived/input は悪くないですが、Invoiceでは少し曖昧です。
+請求先情報は普通、
+
+初期値は自動セット
+
+必要なら請求作成時に修正可能
+
+作成後はinvoiceに固定保存
+
+です。
+
+なので、今の表現でも可ですが、より明確にするなら
+
+Direction = derived (editable before finalize)
+または
+
+Direction = input/derived
+でもよいです。
+
+一番大事な考え方
+
+Invoiceの請求先情報は、ordersを参照し続ける情報ではなく、
+invoice作成時にコピーされてinvoiceに固定される情報として書く方が安全です。
+
+つまり意味としてはこうです。
+
+請求先情報の初期値は order または customer master から取る
+
+でも invoice レコード自身にも保存する
+
+後から order 側の住所が変わっても、既発行invoiceは変わらない
+
+この考え方が仕様で重要です。
+
+こう書くともっと良い
+
+たとえば、今の形を大きく崩さずに直すならこんな感じです。
+
+例
+
+Stage: Invoice Create
+
+Field: invoice_customer_id
+
+Type: int
+
+Req: required
+
+Direction: derived/editable
+
+Inherited From: order billing info / customer master
+
+Used By: invoice
+
+Default: copied from order.billing_customer_id at invoice creation
+
+Field: invoice_customer_name
+
+Default: copied from order.billing_customer_name at invoice creation
+
+Field: invoice_customer_address
+
+Default: copied from order.billing_customer_address at invoice creation
+
+もしorders側に請求先項目がまだ無いなら
+
+その場合は、Invoice側だけ直すより、orders側にも追加した方がきれいです。
+
+追加候補:
+
+billing_customer_id
+
+billing_customer_name
+
+billing_customer_address
+
+そして、
+
+納品先 = delivery address
+
+請求先 = billing address
+
+を分けるのが安全です。
+
+結論
+
+今の記載は悪くないです。十分改善されています。
+ただし、orders.customer_* をそのまま使う表現だと、納品先と請求先が同一前提に見えやすいです。
+
+なので、最低限次のどちらかにした方が良いです。
+
+orders.customer_* ではなく orders.billing_customer_* にする
+または
+
+copied at invoice creation を明記する
+
+おすすめは後者ではなく、両方です。
+
+Ordersにbilling customer情報は重複になるので持たさない。
+このような記述方法ではどうか？
+また、Defaultから変更する際は、nameを検索ボックスとしたい
+その際この記述でいいか？ 
+Thought for a couple of seconds
+
+はい。この書き方でだいぶ良くなっています。
+Orders に billing customer 情報を持たせない方針なら、Invoice Create時に customer master から初期値を引いて、invoice側に固定保存するという読み方ができるので、整合しています。
+
+ただし、2点だけ直した方が安全です。
+
+1. Inherited From
+
+3行目の address だけ orders になっているのは、方針とズレて見えます。
+Ordersに持たない なら、ここも揃えた方がいいです。
+
+おすすめ:
+
+order billing info / customer master ではなく
+
+selected billing customer / customer master
+
+の方がもっと正確です。
+
+理由は、今回は
+
+ordersから継承するのではなく
+
+invoice作成時に請求先顧客を選ぶ
+
+その選択結果から customer master の情報を初期値としてコピーする
+
+という動きだからです。
+
+なので3項目とも、例えばこう揃えるのが自然です。
+
+Inherited From = selected billing customer / customer master
+
+2. Direction
+
+derived/editable はかなり良いです。
+ただ、id / name / address で編集の意味が少し違うので、そこだけ整理するとさらに明確です。
+
+実務的にはこうです。
+
+invoice customer id
+→ 検索選択で入力される主キー
+→ 自由テキスト編集ではない
+
+invoice customer name
+→ 通常は customer master から自動セット
+→ 手修正を許すかどうか決める必要あり
+
+invoice customer address
+→ customer masterから自動セット
+→ 手修正を許すケースが多い
+
+なので、今のまま全て derived/editable でも通じますが、より厳密には:
+
+invoice customer id → input/derived
+
+invoice customer name → derived または derived/editable
+
+invoice customer address → **derived/editable`
+
+が自然です。
+
+検索ボックスにしたい件
+
+はい、その要件は今の記述だけでは少し足りません。
+
+Default は「初期値」の意味なので、
+“変更時はname検索ボックスで請求先を再選択できる” というUI仕様は、Default だけでは表現しきれません。
+
+これは別の列で表した方がいいです。
+
+おすすめ追加列:
+
+UI Control
+
+Selection Rule
+
+Edit Rule
+
+たとえば:
+
+UI Control = search box (customer name lookup)
+
+Selection Rule = select active billing customer from customer master
+
+Edit Rule = changing name rebinds invoice_customer_id and refreshes name/address defaults
+
+最低限、今の列だけで書くなら
+
+列追加なしで表現するなら、Direction か Validation 的な列に寄せて書くしかないです。
+
+たとえば:
+
+invoice customer id
+
+Direction = input/derived
+
+Inherited From = selected billing customer / customer master
+
+Default = auto-set from selected billing customer
+
+補足: 名前検索で顧客選択、選択結果からID確定
+
+invoice customer name
+
+Direction = input/derived
+
+Inherited From = selected billing customer / customer master
+
+Default = copied from selected billing customer at invoice creation
+
+invoice customer address
+
+Direction = derived/editable
+
+Inherited From = selected billing customer / customer master
+
+Default = copied from selected billing customer address at invoice creation
+
+ただし重要な注意
+
+「nameを検索ボックスにする」なら、実際に選択の本体はnameではなくcustomer_idです。
+
+つまり仕様上は:
+
+ユーザーは名前で検索
+
+候補から1件選択
+
+システムは invoice_customer_id を確定
+
+invoice_customer_name と invoice_customer_address を自動反映
+
+です。
+
+なので、仕様書では
+検索対象はname、保存の主キーはid
+と分けて書いた方がいいです。
+
+おすすめの書き方
+
+今の表をなるべく崩さずにいくなら、こうすると良いです。
+
+invoice customer id
+
+Req: required
+
+Direction: input/derived
+
+Inherited From: selected billing customer / customer master
+
+Default: set from customer selected by name search at invoice creation
+
+invoice customer name
+
+Req: required
+
+Direction: derived
+
+Inherited From: selected billing customer / customer master
+
+Default: copied from selected billing customer at invoice creation
+
+invoice customer address
+
+Req: required
+
+Direction: derived/editable
+
+Inherited From: selected billing customer / customer master
+
+Default: copied from selected billing customer address at invoice creation
+
+結論
+
+Ordersにbilling customer情報を持たない前提として、この方向性は良い
+
+ただし Inherited From = orders はやめて、customer master起点に揃えるべき
+
+name検索ボックスの仕様は、Default だけでは不足
+
+仕様上は nameで検索して、idを確定する と書くのが正確
+
+一番おすすめなのは、UI Control 列を1本追加して、そこに
+search box (customer name lookup)
+と書く形です。
+
+これでいいですね。
+
+これ以外にわたしに確認したい箇所、注意した方がいい箇所はありますか？
+Thought for a couple of seconds
+
+はい、この部分はこれで大丈夫です。
+
+そのうえで、次にあなたに確認したいのは、実装事故が起きやすい箇所です。
+優先順にいうと、次のあたりです。
+
+1. Invoice customer の編集ルール
+
+今の定義だと方向性は良いですが、運用ルールを決めた方がいいです。
+
+確認したいこと:
+
+invoice customer address は手修正OKか
+
+invoice customer name も手修正OKか
+
+一度Invoice作成後、請求確定前なら再検索で顧客差し替えOKか
+
+請求確定後は編集禁止にするか
+
+おすすめ:
+
+id は検索選択のみ
+
+name は原則自動、必要なら編集可
+
+address は編集可
+
+Finalize後は編集不可
+
+2. 請求数量は何を使うか
+
+ここはかなり重要です。
+以前も触れましたが、数量系を明確にしないと、後で揉めやすいです。
+
+確認したいこと:
+
+請求数量は ordered_qty か
+
+purchased_qty か
+
+final_billable_qty のような別管理か
+
+重量課金のとき、請求は実重量ベースか
+
+おすすめ:
+
+請求専用の数量項目を持つ
+
+名前は final_billable_qty などで分ける
+
+3. 部分買付・部分請求を許すか
+
+業務上かなり大事です。
+
+確認したいこと:
+
+受注100、買い付け80だったとき、80だけ請求するか
+
+残20はキャンセルか、次回繰越か
+
+明細単位で partial を許すか
+
+invoice作成条件は「全明細確定後」か「確定分だけ先に可」か
+
+ここが曖昧だと、status設計が崩れます。
+
+4. 納品先と請求先の関係
+
+Invoice側は整理できてきましたが、Order側との関係も確認したいです。
+
+確認したいこと:
+
+1つの注文で、納品先と請求先が異なるのは普通にあるか
+
+納品先は customer DB から選択固定か
+
+納品先住所の手修正は許すか
+
+ここは今後の orders.customer_address の意味にも関わります。
+
+5. 締切後の修正ルール
+
+あなたの業務ではここが非常に重要です。
+
+確認したいこと:
+
+受注締切後、誰なら修正可能か
+
+修正時に理由入力は必須か
+
+締切後修正したら、買い付け集計を再計算するか
+
+請求書作成後の修正は完全禁止か
+
+おすすめ:
+
+締切後はAdminのみ
+
+理由必須
+
+再集計必須
+
+請求確定後は原則修正禁止
+
+6. 単価の決まり方
+
+これは請求にも仕入にも効きます。
+
+確認したいこと:
+
+売価は customer × item の価格表で固定か
+
+手修正できるのは誰か
+
+原価は purchase result で確定か
+
+割引は行単位か、請求書全体か
+
+ここを曖昧にすると、粗利や請求額がずれます。
+
+7. 仕入先割当（Allocation）の意味
+
+ここは仕様書で誤解されやすいです。
+
+確認したいこと:
+
+Allocationは自動提案だけか
+
+手動で変更する前提か
+
+1商品を複数仕入先へ分割できるか
+
+allocation_confidence は本当に必要か
+
+小規模運用なら、
+allocation_confidence は後回しでもいい可能性があります。
+
+8. Invoiceの確定タイミング
+
+これも明文化をおすすめします。
+
+確認したいこと:
+
+Invoice Create と Invoice Finalize は別操作か
+
+FinalizeしたらPDF番号固定か
+
+Finalize後の再発行はどう扱うか
+
+番号採番は作成時か、確定時か
+
+おすすめ:
+
+下書き作成
+
+確定時にinvoice_no採番
+
+確定後は内容ロック
+
+再発行は同番号で再出力、修正はcredit/debitで別処理
+
+9. customer master 検索条件
+
+今の「name検索」は良いですが、少し詰めるともっと良いです。
+
+確認したいこと:
+
+同名顧客がいたらどう表示するか
+
+検索対象は name のみか、code/phone も含むか
+
+inactive customer を検索候補に出すか
+
+billing利用不可のcustomerを除外するか
+
+おすすめ:
+
+name / code / phone で検索
+
+候補には customer code + name + address を表示
+
+inactiveは非表示
+
+10. 監査ログの範囲
+
+これは後回しに見えて重要です。
+
+確認したいこと:
+
+どの項目変更を監査対象にするか
+
+invoice customer の差し替えは必ず記録するか
+
+address手修正も記録するか
+
+おすすめ:
+
+数量、単価、顧客、住所、status、invoice finalize は全部ログ対象
+
+いま特に優先して確認したい3点
+
+全部の中でも、先に固めるべきなのはこの3つです。
+
+請求数量は何を使うか
+
+部分買付・部分請求を許すか
+
+締切後と請求確定後の修正ルール
+
+ここが決まると、status・validation・invoice仕様がかなり安定します。
+
+必要なら次に、こちらで
+「確認すべき論点チェックリスト」
+として、Yes/Noや選択式で埋められる形にしてまとめます。
+
+動で変更する前提か
+
+final_billable_qtyを持ち、default値をpurchased_qtyとする
+
+受注100、買い付け80だったとき、80だけ請求
+
+invoice作成条件は「確定分だけ先に可」
+
+納品先と請求先が異なることはありえるYES
+
+納品先は customer DB から選択固定YES
+
+納品先住所の手修正は許さない。NO
+
+受注締切後、受注登録者、Admin
+
+修正時に理由入力は必須 YES
+
+締切後修正したら、単一納品書の買い付けリストを作成できないか？
+システム上のコストとしてどちらがやりやすいか
+
+請求書作成後の修正は完全禁止YES
+
+売価は customer × item の価格表ではないNO
+仕入れ価格が時価なので、売価も変更する
+
+単価手修正できるのは受注担当者、請求書担当者
+
+原価は purchase result に別途輸送費をつける必要がある
+
+割引は行単位
+
+Allocationは過去データから、自動割り振りして、その後手作業で修正
+
+場合によって1商品を複数仕入先へ分割する必要がある
+Allocation Splitの役割 
+
+Invoice Create と Invoice Finalize は別操作YES
+
+FinalizeしたらPDF番号固定YES
+
+INVOICE番号採番は確定時か
+
+Finalize後の修正および再発行可能
+reset to draft
+
+allocation_confidence不要
+
+同名顧客がいたばあい、顧客IDを併記して識別
+
+検索対象は name、住所、顧客ID
+
+数量、単価、顧客、住所、status、invoice finalize は全部ログ対象OK
+Thought for a few seconds
+
+かなり固まりました。
+この内容なら、仕様として大きく前に進めます。
+
+今回の中で、その場で結論を出した方がいい点はこれです。
+
+締切後修正したら、単一納品書の買い付けリストを作れるか
+
+作れます。
+ただし、**やりやすくて安全なのは「再集計方式」**です。
+
+おすすめ
+
+締切後修正は許可する
+
+ただし理由必須
+
+修正が入ったら、その納品書/業務日単位の買い付けリストを再計算して再生成
+
+旧版は消さず、version管理または再生成時刻を残す
+
+これがやりやすい理由
+
+「一度作った買い付けリストの差分だけ直す」方式より、
+元データから毎回作り直す方式の方が実装が簡単で、ミスも少ないです。
+
+つまり開発コストの観点では:
+
+再集計して再生成 → 実装しやすい、安全
+
+差分だけ反映 → 複雑、バグりやすい
+
+なので、あなたの業務のように時間制約が厳しく、ミスが許されないなら、
+締切後修正は可能だが、買い付けリストは再生成するが一番よいです。
+
+あなたの入力内容で、ほぼ確定でよいもの
+
+以下はそのまま仕様化してよさそうです。
+
+final_billable_qty を持つ
+
+final_billable_qty の初期値は purchased_qty
+
+受注100 / 買付80なら 80だけ請求
+
+確定分だけ先に請求可
+
+納品先と請求先は別の可能性あり
+
+納品先は customer DB から選択固定
+
+納品先住所の手修正不可
+
+締切後修正は受注登録者とAdmin可
+
+締切後修正は理由必須
+
+請求書作成後の修正は完全禁止
+
+単価は固定価格表ではなく手修正前提
+
+単価修正権限は受注担当者、請求書担当者
+
+原価は purchase result + 輸送費
+
+割引は行単位
+
+Allocationは自動提案後に手修正
+
+1商品を複数仕入先へ分割可
+
+Invoice Create と Finalize は別
+
+PDF番号は Finalize 後に固定
+
+同名顧客は顧客ID併記で識別
+
+検索対象は name / address / customer ID
+
+監査ログ対象は 数量、単価、顧客、住所、status、invoice finalize
+
+まだ決めた方がいい点
+
+今回の内容で、残り少しだけ詰めたいのは次です。
+
+1. Invoice番号の採番タイミング
+
+あなたの書き方だと、確定時採番が一番自然です。
+おすすめもそれです。
+
+理由:
+
+Draft段階で番号を消費しない
+
+欠番が減る
+
+Finalize後PDF番号固定と整合する
+
+なので、仕様としては
+Invoice number is assigned at Invoice Finalize
+でよいです。
+
+2. Finalize後の「修正および再発行可能、reset to draft」
+
+ここだけ少し注意です。
+あなたは前に「請求書作成後の修正は完全禁止YES」と言っていますが、
+今回「Finalize後の修正および再発行可能、reset to draft」とあるので、少し矛盾します。
+
+整理すると、どちらかです。
+
+安全な案
+
+Finalize後は編集禁止
+
+再発行は同内容のPDF再出力のみ
+
+内容を変えるなら AdminがReset to Draft
+
+Reset理由必須
+
+Reset実行も監査ログ対象
+
+これが一番おすすめです。
+
+つまり、
+
+通常の修正は禁止
+
+例外処理として Reset to Draft は可
+
+という扱いです。
+
+3. Allocation Split
+
+これは必要です。
+1商品を複数仕入先へ分けるなら、Allocation とは別に
+Allocation Split 明細 の考え方が必要です。
+
+イメージ:
+
+Allocation = 親
+
+Allocation Split = 仕入先ごとの分配明細
+
+最低限必要なのは:
+
+allocation_id
+
+supplier_id
+
+allocated_qty
+
+allocated_uom
+
+proposed / confirmed
+
+override_reason
+
+そしてルールは:
+
+sum(split allocated_qty) = line allocated_qty
+
+いまの内容を一文でまとめると
+
+仕様としてかなり良いです。
+特に、部分請求・請求数量・締切後修正・請求先/納品先分離が固まったので、実装の芯ができています。
+
+次に決めるべき最小ポイントはこの2つです。
+
+Invoice番号はFinalize時採番で確定するか
+
+Finalize後は通常編集禁止、例外的にAdminだけReset to Draft可でよいか
+
+この2つが決まれば、かなり完成形に近づきます。
+
+Invoice number is assigned at Invoice Finalize：YES
+Finalize後の修正および再発行可能、reset to draft：YES
+
+Allocation SplitデータはAllocationと同じテーブルに存在する
+それらを見分け、集計するためにsplit_group_id   is_split_child があり、
+数量検証のためにchild final_qty sumがある。 
+
+
+おすすめに従います。
+締切後修正は許可する
+ただし理由必須
+修正が入ったら、その納品書/業務日単位の買い付けリストを再計算して再生成
+旧版は消さず、version管理または再生成時刻を残す
+ただし、Allocationで入力されたデータは消さないこと
+Thought for a couple of seconds
+
+はい、これでかなり明確です。
+しかも、実装しやすく、運用事故も減らしやすい方針になっています。
+
+以下の2点は、そのまま仕様として採用して大丈夫です。
+
+1. Invoice
+
+Invoice number is assigned at Invoice Finalize
+
+Finalize後は Reset to Draft により修正可能
+
+Reset to Draft / Finalize / Reissue はすべて監査ログ対象
+
+この整理で矛盾がなくなりました。
+つまり、
+
+Draft中は編集可
+
+Finalizeで番号採番・PDF番号固定
+
+Finalize後は通常編集不可
+
+ただし、明示的に Reset to Draft した場合のみ再編集可
+
+再確定時の扱いは要件に応じて「同一invoiceを再確定」または「再発行履歴を残す」
+
+という流れです。
+
+2. 締切後修正と買い付けリスト
+
+この方針で良いです。
+
+締切後修正は許可
+
+理由必須
+
+修正が入ったら、納品書/業務日単位の買い付けリストを再計算して再生成
+
+旧版は削除せず、version または regenerated_at を保持
+
+これはとても良いです。
+ただし、あなたが最後に書いたこの条件は重要です。
+
+Allocationで入力されたデータは消さない
+
+ここは仕様として、もう一段はっきり書いた方がいいです。
+
+重要な整理
+
+再計算・再生成する対象は、受注由来の集計結果であって、
+人手で入力・調整した Allocation の確定値は自動で破壊しない、という方針にすべきです。
+
+つまりおすすめ仕様はこうです。
+
+再生成時のルール
+自動再計算されるもの
+
+取引先別受注一覧の再集計
+
+商品別合計数量
+
+買い付け対象一覧
+
+未割当数量
+
+差分表示
+
+自動では消さないもの
+
+Allocationで手入力・手修正した supplier_id
+
+allocated_qty
+
+split_group_id
+
+is_split_child
+
+override_reason
+
+manual override flag
+
+一番安全な実装方針
+
+締切後修正があったとき、Allocationを全部再作成するのではなく、
+集計結果だけ更新し、Allocationには差分警告を出すのが安全です。
+
+おすすめ動作
+
+たとえば受注修正前:
+
+商品A 受注合計 100
+
+Allocation済 100
+
+修正後:
+
+商品A 受注合計 120
+
+この場合は自動でAllocationを消さずに、
+
+新しい required total = 120
+
+既存 allocated total = 100
+
+unallocated diff = 20
+
+として表示する。
+
+逆に修正後:
+
+商品A 受注合計 90
+
+既存 allocated total = 100
+
+なら
+
+required total = 90
+
+allocated total = 100
+
+overallocation diff = 10
+
+と警告する。
+
+これが一番安全です。
+
+仕様として明文化したい文
+
+そのまま要件定義に入れやすい形で書くと、こんな感じです。
+
+締切後修正時の再生成ルール
+
+Any order changes after cutoff must require a reason code and be audit-logged.
+
+After such changes, procurement list data must be recalculated and regenerated per delivery note / business day.
+
+Previous generated versions must be retained with version number or regeneration timestamp.
+
+Existing Allocation records must not be deleted automatically.
+
+The system must preserve manual allocation inputs and show quantity differences between regenerated demand and existing allocation totals.
+
+If regenerated required quantity differs from allocated quantity, the system must flag under-allocation or over-allocation for user review.
+
+Allocation Splitについて
+
+あなたの説明で筋は通っています。
+同じテーブルに親とsplit子を持たせる設計も可能です。
+
+ただし、その場合は判定ルールを仕様に明記した方がいいです。
+
+明記した方がいいこと
+
+is_split_child = false は親行
+
+is_split_child = true は split子行
+
+split_group_id が同じ行は同一分割グループ
+
+親行がある場合、子行合計が親行数量と一致すること
+
+子行のみで運用する場合、group単位合計を採用すること
+
+集計時に親子二重計上しないルール
+
+ここが曖昧だと、開発側が親も子も合計してしまう事故が起きます。
+
+ここで追加確認したい最後の実務論点
+
+このままでも進められますが、1つだけ決めるとさらに良いです。
+
+Allocation親子の集計基準
+
+同じテーブルに親子を持つ場合、どちらを正として集計するかです。
+
+おすすめは次です。
+
+splitが存在しない場合
+親行の allocated_qty を使う
+
+splitが存在する場合
+子行合計を正とし、親行はヘッダ/表示用途にする
+
+このルールが分かりやすいです。
+
+結論
+
+今の決定内容はかなり良いです。
+特にこの2つが重要で、方向性は正しいです。
+
+締切後修正しても、Allocation確定データは自動で消さない
+
+再生成後は差分管理で吸収する
+
+次に仕様書へ追記すると良いのは次の3点です。
+
+締切後修正時の再生成ルール
+
+Allocationは保持し、差分のみ警告するルール
+
+split親子の集計優先ルール
+
+必要なら次に、あなたの決定内容をそのまま反映した
+仕様追記文（Excelに貼るための短文）
+として列ごとの記載案に落とします。
