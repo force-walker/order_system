@@ -92,6 +92,10 @@ Response fields:
 Policy:
 - cutoff後は order creator / admin のみ変更可
 - 変更時は理由必須、監査ログ必須
+- 重大変更判定はユーザー判断とする（システム自動判定なし）
+- 重大変更で `allocated -> open` に戻したlineは再生成対象に含める
+- 再生成は同一orderで同時実行不可（実行中は `409 Conflict`）
+- 再生成失敗時は全体ロールバック（状態不変）
 
 ---
 

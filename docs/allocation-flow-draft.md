@@ -61,6 +61,19 @@ Speed up purchasing with automatic supplier allocation, while guaranteeing human
    - Batch status → `ready_to_purchase`
    - Generate printable/exportable supplier purchase list.
 
+6.1 **Procurement List Regeneration (after cutoff changes)**
+   - Regeneration target policy:
+     - default target = newly added `open` lines
+     - lines manually returned from `allocated -> open` are included
+   - Major-change judgement is user-driven (not auto-detected by system).
+   - Existing allocation values should be preserved as much as possible when re-generating.
+   - Full rollback policy: if regeneration fails, no status/data changes are committed.
+
+6.2 **Double-execution prevention (same order)**
+   - System places an order-level regeneration lock while regeneration is running.
+   - Second regeneration request for the same order returns `409 Conflict`.
+   - Lock is released on success/failure completion.
+
 7. **Purchase Result Registration**
    - Buyer records actual outcomes (`full/partial/failed/substitute`)
    - Catch-weight actuals recorded where needed
