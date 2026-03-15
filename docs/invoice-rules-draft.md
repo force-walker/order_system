@@ -118,6 +118,24 @@ Meaning:
 
 ---
 
+## Reset to Draft Policy
+Reset-to-draft is allowed to reopen a finalized invoice for correction.
+
+- Actor: Admin only (MVP)
+- Allowed when: `invoice.status = finalized`
+- Required input: `reset_reason_code` (`data_error|pricing_error|tax_error|customer_change|policy_exception`)
+- `reset_note` is required when `reset_reason_code=policy_exception`
+
+On reset execution:
+- `invoice.status: finalized -> draft`
+- `invoice_line_status` for affected lines is reset to `uninvoiced` (uniform policy)
+- invoice items are retained (not deleted), recalculation required before re-finalize
+
+Hard-stop (reset blocked):
+- invoice not in finalized status
+- required reset reason missing
+- optimistic lock/version conflict
+
 ## Auditability Requirements
 For any invoice change before finalization:
 - Capture before/after values for qty, weight, price, discount, tax
@@ -127,6 +145,11 @@ For any invoice change before finalization:
 On finalization:
 - Freeze calculation inputs and totals
 - Persist a PDF/render snapshot hash (future enhancement)
+
+On reset-to-draft:
+- Capture before/after invoice status
+- Capture before/after `invoice_line_status`
+- Capture reason code, note, actor, timestamp
 
 ---
 

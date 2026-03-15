@@ -211,6 +211,20 @@ Finalize response fields:
 - `gross_margin_rate` (decimal(8,4), optional/internal)
 - `updated_invoice_line_status[]` (`partially_invoiced` or `invoiced`)
 
+Reset-to-draft endpoint (MVP):
+- `POST /api/invoices/{id}/reset-to-draft`
+- Actor: Admin only
+
+Reset request fields:
+- `reset_reason_code` (required: `data_error|pricing_error|tax_error|customer_change|policy_exception`)
+- `reset_note` (optional; required when `reset_reason_code=policy_exception`)
+
+Reset behavior:
+- `invoice.status: finalized -> draft`
+- affected `invoice_line_status` is uniformly reset to `uninvoiced`
+- hard-stop on non-finalized invoice / missing reason / version conflict
+- hard-stop failure does not lock record; users can fix and retry
+
 ---
 
 ## 3) 帳票 I/O 定義

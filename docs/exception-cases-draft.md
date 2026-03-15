@@ -105,6 +105,13 @@ Transition `purchased -> shipped` is blocked unless all active lines satisfy:
 - If `shortage_qty > 0`, shortage policy and reason are fixed
 - if `invoiceable_flag=false`, block reason is explicitly recorded
 
+## Hard-stop behavior policy
+When a hard-stop occurs, the attempted operation fails atomically and no business status is changed:
+- order/invoice/line status remains unchanged
+- transaction is rolled back (all-or-nothing)
+- blocked attempt is audit-logged with reason code
+- record remains editable; user can fix and retry (no operational lock)
+
 ## Open decisions for next refinement
 - Which exception cases require supervisor approval?
 - SLA for unresolved backorder cases
