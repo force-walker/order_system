@@ -10,6 +10,7 @@
 - 2026-03-16 00:59〜01:07: Reset to Draft（Adminのみ、lineはuninvoicedへ戻す）
 - 2026-03-16 01:15〜01:33: Cancel権限マトリクス（group+user例外方針）
 - 2026-03-16 02:09〜02:18: regeneration二重実行防止（orderロック、409、全体ロールバック）
+- 2026-03-16 03:04〜03:16: Invoiceロック基準・採番・同時更新制御・画面再読込フロー・all-or-nothing境界を確定
 
 ## 1. 全体方針
 - I/O定義の正（Source of Truth）は Excel: `docs/IO_from_order_to_invoice_revised_v_2.xlsx`。
@@ -181,3 +182,22 @@
 - `./order_system/docs/decision_logs.txt` を #main チャンネルの決定事項記録先として継続利用する。
 - 既存の他チャンネル決定事項は削除せず保持する。
 - 追記時は可能な限り日時を明記する（トレーサビリティ担保）。
+
+### I. Invoiceロック/採番/同時更新制御（Discord #proj-order-system-requirements-3, 2026-03-16 03:04〜03:16）
+- Invoice変更ロック基準:
+  - `invoice_date` の翌月末をロック日とする。
+- Payment Term:
+  - 取引先ごとに異なる運用（ロック基準とは別管理）。
+- Invoice番号フォーマット:
+  - `INV/YYYY/00000`
+- 再採番:
+  - なし（採番後は固定）。
+- 欠番/重複:
+  - 欠番は許容。
+  - 重複は禁止（防止最優先）。
+- 丸め:
+  - 全項目 floor。
+- 画面再読込フロー:
+  - `409 VERSION_CONFLICT` 時に再読込して再編集・再保存する方式を採用。
+- all-or-nothing境界:
+  - 基本は invoice/order 単位で適用。
