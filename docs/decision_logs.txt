@@ -1,0 +1,98 @@
+# Order System 要件定義 決定ログ（Discord #proj-order-system-requirements）
+
+更新日: 2026-03-16
+
+## 1. 全体方針
+- I/O定義の正（Source of Truth）は Excel: `docs/IO_from_order_to_invoice_revised_v_2.xlsx`。
+- 仕様書は上記Excelに追従する運用。
+- Excelはユーザー（Koji）が編集、Botは仕様書更新と整合チェック中心。
+
+## 2. ステータス/フロー
+- Order主フロー（確定）:
+  - `new -> confirmed -> allocated -> purchased -> shipped -> invoiced` (+ `cancelled`)
+- line_status（確定）:
+  - `open | allocated | purchased | shipped | invoiced | cancelled`
+- Auto Allocationバッチ対象:
+  - `line_status=open` のみ。
+- line単位でもAllocation対応可能。
+
+## 3. 課税・丸め（確定）
+- 税計算は line単位ではなく invoice total 単位。
+- 税額式:
+  - `tax_amount = floor(total_amount_pretax × tax_rate)`
+- 丸め方式:
+  - 切り捨て（floor）
+
+## 4. Invoice方針（確定）
+- 請求単位は orderベース。
+- ただし split請求は許可（同一orderに複数invoice可）。
+- 先行請求しないlineは未請求のまま保持。
+- line請求状態（確定）:
+  - `invoice_line_status = uninvoiced | partially_invoiced | invoiced | cancelled`
+- Invoice Create必須項目に `due_date` を含める。
+
+## 5. Invoice Finalize hard-stop（最終）
+- selected line 0件
+- `invoiceable_flag=false` 含む
+- `result_status=not_filled` 含む
+- catch-weightで `actual_weight_kg` 欠落
+- required unit price 欠落
+- billable qty不正（<=0 または未請求残超過）
+- 税式不一致
+- 合計不一致
+- 負値
+- version競合
+
+## 6. Reset to Draft（確定）
+- Endpoint運用あり（MVP）
+- 実行権限: Adminのみ
+- Reset時、対象lineの `invoice_line_status` は一律 `uninvoiced` に戻す
+- Hard-stop時は状態不変、レコードはロックしない（再編集・再実行可）
+
+## 7. Purchase Result / 不足処理（確定）
+- 結果ステータス:
+  - `not_filled | filled | partially_filled | substituted`
+- 必須入力:
+  - `supplier_id, purchased_qty, final_unit_cost, result_status`
+- `uom` はSKUで一意に決まるため入力不要方針
+- shortage policy:
+  - `backorder | cancel | substitute | split`
+- shortage reason:
+  - `stockout | quality_issue | delivery_delay | supplier_reject | manual_adjustment`
+- `manual_adjustment` はMVPで許可（`shortage_note` 必須）
+- `delivery_delay` は全選択肢許可（backorder限定なし）
+- `quality_issue` は優先ポリシーなし
+
+## 8. Cancelポリシー（確定）
+- Invoiced lineの直接cancelは不可。
+- ただし invoiceがreset-to-draft後（draft状態）なら、権限者がline cancel可能。
+- Hard-stop時:
+  - 操作のみ失敗（all-or-nothing rollback）
+  - Order/Invoice/lineの状態は不変
+  - 監査ログ記録、修正後リトライ可
+
+## 9. 権限モデル（確定）
+- MVPはグループ権限ベース + ユーザー個別例外（Allow/Deny）併用。
+- 優先順位:
+  1) user explicit deny
+  2) user explicit allow
+  3) group permission
+  4) default deny
+- Cancel権限マトリクスは
+  - `docs/permission_matrix_cancel.csv` で管理。
+
+## 10. 再生成（procurement_list_regeneration）
+- 重大変更判定はシステム自動ではなくユーザー判断。
+- `allocated -> open` に戻したlineは再生成対象。
+- 旧allocation入力値はできるだけ保持。
+- `regeneration_reason_code` は不要。
+- 同一orderへの再生成二重実行防止:
+  - order単位ロック
+  - 実行中の再要求は `409 Conflict`
+- 失敗時は全体ロールバック。
+
+## 11. 補足
+- `generated` と `derived` は別概念として運用:
+  - generated = 新規発行値
+  - derived = 既存情報/ルールから導出値
+- Lookup-selectはID行、name/address行はderivedで扱う方針。
