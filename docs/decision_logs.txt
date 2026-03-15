@@ -211,3 +211,8 @@
 - 監査ログUIエクスポート（MVP）:
   - CSVエクスポートのみ採用。
   - 必須列: `event_time, event_type, resource_type, resource_id, actor, reason_code, reason_note, before_json, after_json`
+
+### K. API Error Code定義着手（Discord #proj-order-system-requirements-3, 2026-03-16 03:24〜）
+- APIエラーコード定義をMVP仕様として整理開始。
+- 主要対象HTTP: `400/401/403/404/409/422`
+- `409` は version conflict / lock conflict / duplicate number / regeneration running を明示分離する方針。

@@ -82,3 +82,10 @@ This package is draft-level functional specification for MVP planning and implem
 15. `docs/IO_from_order_to_invoice.xlsx`
    - Order→InvoiceのI/Oマトリクス（Excel版）
    - 入力/出力/継承元 + Allowed values / Validation rule / System of record
+
+16. `docs/invoice-lock-and-concurrency-draft.md`
+   - Invoice更新ロック基準、採番、楽観ロック、再読込フロー、all-or-nothing境界
+
+17. `docs/api-error-codes-draft.md`
+   - HTTPステータスと業務エラーコードの標準定義
+   - Invoice/Allocation/Regenerationの主要エラー対応とレスポンス形式
