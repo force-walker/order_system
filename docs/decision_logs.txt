@@ -2,6 +2,15 @@
 
 更新日: 2026-03-16
 
+## 決定日時（主要）
+- 2026-03-15 15:28〜16:00: Invoice方針（order単位＋split請求許可、invoice_line_status）
+- 2026-03-15 15:30〜15:35: Invoice Finalize hard-stop 最終化
+- 2026-03-15 23:11〜23:14: 税・丸め（invoice total課税、floor）確定
+- 2026-03-16 00:50〜02:12: shortage処理・result_status・再生成方針の確定
+- 2026-03-16 00:59〜01:07: Reset to Draft（Adminのみ、lineはuninvoicedへ戻す）
+- 2026-03-16 01:15〜01:33: Cancel権限マトリクス（group+user例外方針）
+- 2026-03-16 02:09〜02:18: regeneration二重実行防止（orderロック、409、全体ロールバック）
+
 ## 1. 全体方針
 - I/O定義の正（Source of Truth）は Excel: `docs/IO_from_order_to_invoice_revised_v_2.xlsx`。
 - 仕様書は上記Excelに追従する運用。
