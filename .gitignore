@@ -19,3 +19,7 @@ openclaw.json
 .DS_Store
 Thumbs.db
 *.log
+
+# Local legacy docs/work files
+/doc/legacy/
+/docs/legacy/
