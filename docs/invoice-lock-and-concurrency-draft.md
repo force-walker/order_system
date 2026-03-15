@@ -139,15 +139,45 @@ Failure rule:
 
 ---
 
-## 8. Open items (remaining)
+## 8. Finalized operational decisions (2026-03-16)
 
-1. Unlock TTL after Admin unlock (no limit / N hours)
-2. Whether unlock reason code must be selected from master list
-3. Whether audit log export for unlock/conflict is required in MVP UI
+1. Unlock TTL after Admin unlock
+- Unlimited (no auto-expiry)
+
+2. Unlock reason input
+- Reason code is mandatory
+- Note is optional
+- Adopted reason codes:
+  - `pricing_correction`
+  - `quantity_correction`
+  - `tax_correction`
+  - `customer_request`
+  - `data_fix`
+  - `other`
+
+3. Audit log export in MVP UI
+- CSV export only (no advanced UI analytics in MVP)
+- Required CSV columns:
+  - `event_time`
+  - `event_type`
+  - `resource_type`
+  - `resource_id`
+  - `actor`
+  - `reason_code`
+  - `reason_note`
+  - `before_json`
+  - `after_json`
 
 ---
 
-## 9. Acceptance Criteria (for UAT linkage)
+## 9. Additional validation rules
+
+- Unlock endpoint requires `reason_code`; request without code is `400 INVALID_REASON_CODE`.
+- Unlock note is optional but must be <= 500 chars when provided.
+- Unlock event and subsequent update events must be linked by `resource_id` in audit logs.
+- CSV audit export must include all required columns even when values are null.
+
+## 10. Acceptance Criteria (for UAT linkage)
 
 - Duplicate invoice_no cannot be created under concurrent requests
 - Gap in sequence is acceptable and does not block operations

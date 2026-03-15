@@ -201,3 +201,13 @@
   - `409 VERSION_CONFLICT` 時に再読込して再編集・再保存する方式を採用。
 - all-or-nothing境界:
   - 基本は invoice/order 単位で適用。
+
+### J. Open items確定（Discord #proj-order-system-requirements-3, 2026-03-16 03:20〜03:23）
+- Admin Unlock TTL:
+  - 無期限（auto-expiryなし）。
+- Unlock理由入力:
+  - 理由コード必須、備考任意。
+  - コード採用: `pricing_correction | quantity_correction | tax_correction | customer_request | data_fix | other`
+- 監査ログUIエクスポート（MVP）:
+  - CSVエクスポートのみ採用。
+  - 必須列: `event_time, event_type, resource_type, resource_id, actor, reason_code, reason_note, before_json, after_json`
