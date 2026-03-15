@@ -226,3 +226,8 @@
 - `orders / allocations / purchase-results / invoices` の主要endpointをOpenAPI skeleton化。
 - 各endpointに標準エラーレスポンス（400/401/403/404/409/422）を適用。
 - `openapi-error-components-draft.yaml` を外部参照する構成で整備。
+
+### N. 表記統一フェーズ着手（Discord #proj-order-system-requirements-3, 2026-03-16 03:33〜03:35）
+- API詳細化より先に、docs横断の表記ゆれ統一を優先する方針を確認。
+- 「表記統一チェックリスト（docs横断）」を作成・共有。
+- 次回セッションでチェックリストに沿って統一作業を実施予定。
