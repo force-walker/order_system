@@ -1,12 +1,12 @@
 # Status Transition Draft (Order Lifecycle)
 
-Updated: 2026-03-14
+Updated: 2026-03-15
 
 ## Final status policy (MVP)
 
 Main flow:
 
-`new → confirmed → purchasing → shipped → delivered → invoiced`
+`new → confirmed → allocated → purchased → shipped → invoiced`
 
 Exception flow:
 
@@ -28,27 +28,29 @@ Exception flow:
   - at least 1 valid order line
   - mandatory pricing basis fields
 
-## 2) `confirmed → purchasing`
+## 2) `confirmed → allocated`
 - Actor: Buyer, Admin
 - Required:
-  - allocation run completed
-  - no unassigned mandatory lines
+  - allocation run completed for target lines
+  - allocation target lines are `line_status=open`
 
-## 3) `purchasing → shipped`
+## 3) `allocated → purchased`
 - Actor: Buyer, Admin
 - Required:
   - purchase result registration started
-  - blocking shortages handled by policy (`stockout_policy`)
+  - required fields entered (`supplier_id`, `purchased_qty`, `final_unit_cost`, `result_status`)
 
-## 4) `shipped → delivered`
+## 4) `purchased → shipped`
 - Actor: Buyer, Admin
 - Required:
-  - delivery confirmation (manual or external signal)
+  - all active lines are not `result_status=not_filled`
+  - shortage handling fixed when `shortage_qty > 0`
+  - no blocking invoice flags without explicit reason
 
-## 5) `delivered → invoiced`
+## 5) `shipped → invoiced`
 - Actor: Billing, Admin
 - Required:
-  - invoice generated and finalized
+  - invoice generated and finalized (split invoicing allowed)
   - catch-weight lines have `actual_weight_kg`
   - price/tax validations pass
 
@@ -56,7 +58,7 @@ Exception flow:
 
 ## Cancel rules (`* → cancelled`)
 
-- Allowed from: `new`, `confirmed`, `purchasing`, `shipped`, `delivered`
+- Allowed from: `new`, `confirmed`, `allocated`, `purchased`, `shipped`
 - Not allowed from: `invoiced` (MVP default hard-stop)
 - Required on cancel:
   - cancel reason code
@@ -80,11 +82,12 @@ Allowed values (MVP):
 - `open`
 - `allocated`
 - `purchased`
+- `shipped`
 - `invoiced`
 - `cancelled`
 
 Recommended progression:
-`open -> allocated -> purchased -> invoiced` (+ `cancelled` by policy)
+`open -> allocated -> purchased -> shipped -> invoiced` (+ `cancelled` by policy)
 
 ## Cutoff / edit policy
 

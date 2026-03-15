@@ -58,11 +58,16 @@ Notes:
 ## Finalization Constraints (Hard Stops)
 Cannot finalize invoice if any of the following is true:
 
-1. Catch-weight line missing `actual_weight_kg`
-2. Required price missing (`unit_price_uom_kg` or `unit_price_order_uom`)
-3. Negative totals after discount
-4. Referenced order line is cancelled/invalid
-5. Batch/operation state not eligible (if strict workflow enforced)
+1. No selected invoiceable lines for this finalize run
+2. Selected lines include `invoiceable_flag=false`
+3. Selected lines include `result_status=not_filled`
+4. Catch-weight line missing `actual_weight_kg`
+5. Required price missing (`unit_price_uom_kg` or `unit_price_order_uom`)
+6. Invalid billable qty (`billable_qty <= 0` or exceeds uninvoiced remainder)
+7. Tax mismatch (`tax_amount != floor(total_amount_pretax × tax_rate)`)
+8. Total mismatch (`total_amount != total_amount_pretax + tax_amount`)
+9. Any negative totals
+10. Optimistic lock/version conflict on selected lines
 
 ---
 
@@ -70,7 +75,9 @@ Cannot finalize invoice if any of the following is true:
 
 - `gross_margin_rate` is not displayed on customer-facing invoice/PDF.
 
-Invoice header should display a single `delivery_date` (business rule: one invoice does not mix multiple delivery dates).
+Invoice header should display a single `delivery_date`.
+Order-level invoicing is the base policy, but split invoicing is allowed (multiple invoices per order with explicit line selection).
+Non-selected lines remain `invoice_line_status=uninvoiced` for later invoicing or cancellation.
 
 ## Piece-based lines
 Show:

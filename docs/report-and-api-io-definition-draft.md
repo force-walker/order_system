@@ -1,6 +1,6 @@
 # 帳票 / API I/O 定義 Draft (MVP)
 
-Updated: 2026-03-14
+Updated: 2026-03-15
 
 ## 目的
 - 画面・CSV・PDF・APIで使う項目名を統一
@@ -26,8 +26,9 @@ Updated: 2026-03-14
 コード値（MVP）:
 - `order_uom_type`: `uom_count | uom_kg`
 - `stockout_policy`: `backorder | substitute | cancel | partial_ok`
-- `order_status`: `new | confirmed | purchasing | shipped | delivered | invoiced | cancelled`
-- `line_status`: `open | allocated | purchased | invoiced | cancelled`
+- `order_status`: `new | confirmed | allocated | purchased | shipped | invoiced | cancelled`
+- `line_status`: `open | allocated | purchased | shipped | invoiced | cancelled`
+- `invoice_line_status`: `uninvoiced | partially_invoiced | invoiced | cancelled`
 - `result_status`: `not_filled | filled | partially_filled | substituted`
 
 Direction（固定語彙）:
@@ -177,18 +178,30 @@ Create request fields:
 - `invoice_customer_name` (string, derived)
 - `invoice_customer_address` (string, derived)
 - `payment_terms` (string, optional)
-- `due_date` (date, optional)
-- `tax_rate` (decimal, optional)
+- `due_date` (date, required)
+- `tax_rate` (decimal, required)
 - `tax_amount` (decimal, calculated as `floor(total_amount_pretax × tax_rate)`)
 - `total_amount_pretax` (decimal, calculated)
 - `total_amount` (decimal, calculated)
 - `currency` (string(3), default HKD)
 
+Invoicing unit policy:
+- Base unit is order-level invoicing.
+- Split invoicing is allowed (multiple invoices per order).
+- Invoice line selection is explicit per run; non-selected lines remain uninvoiced.
+- Uninvoiced lines can later be invoiced when filled, or remain excluded if cancelled.
+
 Finalize hard-stops:
+- no selected invoiceable lines
+- selected lines include `invoiceable_flag=false`
+- selected lines include `result_status=not_filled`
 - catch-weight line missing `actual_weight_kg`
 - required unit price missing
-- negative total
+- invalid billable qty (`billable_qty <= 0` or exceeds uninvoiced remainder)
 - tax mismatch against invoice-level formula (`floor(total_amount_pretax × tax_rate)`)
+- total mismatch (`total_amount != total_amount_pretax + tax_amount`)
+- negative total values
+- optimistic lock/version conflict on selected lines
 
 Finalize response fields:
 - `invoice_id` (int)
@@ -196,6 +209,7 @@ Finalize response fields:
 - `sales_unit_price` (decimal(12,2), required)
 - `unit_cost_basis` (decimal(12,2), required/internal)
 - `gross_margin_rate` (decimal(8,4), optional/internal)
+- `updated_invoice_line_status[]` (`partially_invoiced` or `invoiced`)
 
 ---
 

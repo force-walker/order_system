@@ -55,7 +55,7 @@ Order header.
 - `cutoff_datetime` (timestamp)
 - `payment_method` (nullable)
 - `payment_status` (nullable)
-- `status` (`new` | `confirmed` | `purchasing` | `shipped` | `delivered` | `invoiced` | `cancelled`)
+- `status` (`new` | `confirmed` | `allocated` | `purchased` | `shipped` | `invoiced` | `cancelled`)
 - `note` (nullable)
 - `created_by`, `created_at`, `updated_by`, `updated_at`
 
@@ -80,7 +80,7 @@ Line-level unit/weight/price details.
 - `line_subtotal` (numeric(12,2), nullable or computed)
 - `line_tax` (numeric(12,2), nullable or computed)
 - `line_total` (numeric(12,2), nullable or computed)
-- `line_status` (`open` | `allocated` | `purchased` | `invoiced` | `cancelled`)
+- `line_status` (`open` | `allocated` | `purchased` | `shipped` | `invoiced` | `cancelled`)
 - `created_at`, `updated_at`
 
 Validation rules:
@@ -141,7 +141,11 @@ Record actual buying outcome.
 - `transport_cost` (numeric(12,2), nullable)
 - `currency` (varchar(3), default `JPY`)  ※仕入通貨
 - `is_final` (boolean, default false)
-- `result_status` (`full` | `partial` | `failed` | `substitute`)
+- `result_status` (`not_filled` | `filled` | `partially_filled` | `substituted`)
+- `shortage_qty` (numeric(12,3), nullable)
+- `shortage_policy` (`backorder` | `cancel` | `substitute` | `split`, nullable)
+- `shortage_reason_code` (`stockout` | `quality_issue` | `delivery_delay` | `supplier_reject` | `manual_adjustment`, nullable)
+- `shortage_note` (nullable; required if `shortage_reason_code=manual_adjustment`)
 - `final_billable_qty` (numeric(12,3), nullable)
 - `final_billable_uom` (varchar, nullable)
 - `invoiceable_flag` (boolean, default true)
@@ -187,6 +191,7 @@ Billing output.
 - `weight_kg` (nullable)
 - `billable_qty` (numeric(12,3), nullable)
 - `billable_uom` (varchar, nullable)
+- `invoice_line_status` (`uninvoiced` | `partially_invoiced` | `invoiced` | `cancelled`)
 - `sales_unit_price` (numeric(12,2))  ※販売単価
 - `unit_cost_basis` (numeric(12,2))  ※粗利計算用原価（split時は加重平均）
 - `gross_margin_rate` (numeric(8,4), nullable)  ※内部管理用（帳票非表示）
