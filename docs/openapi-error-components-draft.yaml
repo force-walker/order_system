@@ -1,0 +1,215 @@
+openapi: 3.0.3
+info:
+  title: Order System Error Components Draft
+  version: 0.1.0
+  description: Reusable OpenAPI components for MVP error responses.
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - error_code
+        - message
+      properties:
+        error_code:
+          type: string
+          description: Stable application error code.
+          enum:
+            - INVALID_REQUEST_FORMAT
+            - MISSING_REQUIRED_FIELD
+            - INVALID_REASON_CODE
+            - INVALID_DATE_FORMAT
+            - AUTH_REQUIRED
+            - AUTH_INVALID_TOKEN
+            - AUTH_EXPIRED_TOKEN
+            - PERMISSION_DENIED
+            - SCOPE_FORBIDDEN
+            - LOCKED_PERIOD_FORBIDDEN
+            - RESOURCE_NOT_FOUND
+            - ORDER_NOT_FOUND
+            - INVOICE_NOT_FOUND
+            - ALLOCATION_NOT_FOUND
+            - VERSION_CONFLICT
+            - STATUS_TRANSITION_CONFLICT
+            - INVOICE_LOCKED
+            - DUPLICATE_INVOICE_NO
+            - REGENERATION_IN_PROGRESS
+            - VALIDATION_FAILED
+            - INVALID_BILLABLE_QTY
+            - MISSING_ACTUAL_WEIGHT
+            - MISSING_REQUIRED_UNIT_PRICE
+            - INVOICEABLE_FLAG_FALSE_INCLUDED
+            - RESULT_STATUS_NOT_FILLED_INCLUDED
+            - TAX_MISMATCH
+            - TOTAL_MISMATCH
+            - NEGATIVE_AMOUNT_NOT_ALLOWED
+            - UNLOCK_REASON_REQUIRED
+            - SHORTAGE_NOTE_REQUIRED
+        message:
+          type: string
+        field:
+          type: string
+          nullable: true
+        resource:
+          type: string
+          nullable: true
+          enum: [order, order_line, allocation, purchase_result, invoice, invoice_line]
+        resource_id:
+          oneOf:
+            - type: string
+            - type: integer
+          nullable: true
+        detail:
+          type: object
+          additionalProperties: true
+          nullable: true
+        trace_id:
+          type: string
+          nullable: true
+
+    ErrorCode:
+      type: string
+      enum:
+        - INVALID_REQUEST_FORMAT
+        - MISSING_REQUIRED_FIELD
+        - INVALID_REASON_CODE
+        - INVALID_DATE_FORMAT
+        - AUTH_REQUIRED
+        - AUTH_INVALID_TOKEN
+        - AUTH_EXPIRED_TOKEN
+        - PERMISSION_DENIED
+        - SCOPE_FORBIDDEN
+        - LOCKED_PERIOD_FORBIDDEN
+        - RESOURCE_NOT_FOUND
+        - ORDER_NOT_FOUND
+        - INVOICE_NOT_FOUND
+        - ALLOCATION_NOT_FOUND
+        - VERSION_CONFLICT
+        - STATUS_TRANSITION_CONFLICT
+        - INVOICE_LOCKED
+        - DUPLICATE_INVOICE_NO
+        - REGENERATION_IN_PROGRESS
+        - VALIDATION_FAILED
+        - INVALID_BILLABLE_QTY
+        - MISSING_ACTUAL_WEIGHT
+        - MISSING_REQUIRED_UNIT_PRICE
+        - INVOICEABLE_FLAG_FALSE_INCLUDED
+        - RESULT_STATUS_NOT_FILLED_INCLUDED
+        - TAX_MISMATCH
+        - TOTAL_MISMATCH
+        - NEGATIVE_AMOUNT_NOT_ALLOWED
+        - UNLOCK_REASON_REQUIRED
+        - SHORTAGE_NOTE_REQUIRED
+
+  responses:
+    BadRequest:
+      description: Bad request.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missingField:
+              value:
+                error_code: MISSING_REQUIRED_FIELD
+                message: required field is missing
+                field: invoice_date
+
+    Unauthorized:
+      description: Unauthorized.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            authRequired:
+              value:
+                error_code: AUTH_REQUIRED
+                message: authentication is required
+
+    Forbidden:
+      description: Forbidden.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            denied:
+              value:
+                error_code: PERMISSION_DENIED
+                message: role is not allowed for this operation
+
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invoiceNotFound:
+              value:
+                error_code: INVOICE_NOT_FOUND
+                message: invoice not found
+                resource: invoice
+                resource_id: inv_123
+
+    Conflict:
+      description: State/version conflict.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            versionConflict:
+              value:
+                error_code: VERSION_CONFLICT
+                message: Record has been updated by another user. Please reload and retry.
+                field: version
+                resource: invoice
+                resource_id: inv_123
+                detail:
+                  current_version: 18
+            duplicateInvoiceNo:
+              value:
+                error_code: DUPLICATE_INVOICE_NO
+                message: invoice number duplication detected
+                field: invoice_no
+                detail:
+                  invoice_no: INV/2026/00042
+
+    UnprocessableEntity:
+      description: Business validation error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            taxMismatch:
+              value:
+                error_code: TAX_MISMATCH
+                message: tax amount does not match floor(total_amount_pretax * tax_rate)
+                field: tax_amount
+            missingActualWeight:
+              value:
+                error_code: MISSING_ACTUAL_WEIGHT
+                message: catch-weight line requires actual_weight_kg
+                field: actual_weight_kg
+
+paths:
+  /api/invoices/{id}/finalize:
+    post:
+      summary: Finalize invoice (response mapping sample)
+      responses:
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'

@@ -216,3 +216,8 @@
 - APIエラーコード定義をMVP仕様として整理開始。
 - 主要対象HTTP: `400/401/403/404/409/422`
 - `409` は version conflict / lock conflict / duplicate number / regeneration running を明示分離する方針。
+
+### L. OpenAPIエラーcomponents化（Discord #proj-order-system-requirements-3, 2026-03-16 03:27〜）
+- APIエラーコード仕様をOpenAPI再利用componentsとしてYAML化。
+- `ErrorResponse` schemaと共通response（400/401/403/404/409/422）を定義。
+- `POST /api/invoices/{id}/finalize` で参照例を定義。

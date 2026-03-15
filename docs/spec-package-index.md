@@ -89,3 +89,7 @@ This package is draft-level functional specification for MVP planning and implem
 17. `docs/api-error-codes-draft.md`
    - HTTPステータスと業務エラーコードの標準定義
    - Invoice/Allocation/Regenerationの主要エラー対応とレスポンス形式
+
+18. `docs/openapi-error-components-draft.yaml`
+   - OpenAPI 3.0 の再利用可能なエラー components 定義
+   - ErrorResponse schema / 共通responses(400/401/403/404/409/422) / finalize endpoint例
