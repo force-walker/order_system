@@ -1,6 +1,6 @@
 # RBAC Draft (MVP)
 
-Updated: 2026-03-10
+Updated: 2026-03-16
 
 ## Roles
 - **Admin**: Full access
@@ -60,14 +60,7 @@ Legend:
   - 仕入先: ⚠️ (propose/update own lines if enabled)
   - 販売先: 🔒
 
-- **Delivery receipt confirmation (`shipped -> delivered`)**
-  - Admin: ✅
-  - 受注入力者: ⚠️ (manual fallback only)
-  - 発注者: ✅
-  - 仕入先: 🔒
-  - 販売先: ✅ (own orders only)
-
-- **Invoice create/finalize (`delivered -> invoiced`)**
+- **Invoice create/finalize (`shipped -> invoiced`)**
   - Admin: ✅
   - 受注入力者: ✅
   - 発注者: ⚠️ (view only by default)
@@ -76,8 +69,22 @@ Legend:
 
 - **Cancel (`* -> cancelled`)**
   - Admin: ✅
-  - 受注入力者: ⚠️ (new/confirmed only)
-  - 発注者: ⚠️ (confirmed/purchasing/shipped under policy)
+  - 受注入力者: ⚠️ (`new` only; own scope)
+  - 発注者: ⚠️ (`new|confirmed|allocated` by assigned scope)
+  - 仕入先: 🔒
+  - 販売先: 🔒
+
+- **Line cancel (invoice-aware)**
+  - Admin: ✅
+  - 受注入力者: 🔒
+  - 発注者: ⚠️ (`uninvoiced` and uninvoiced remainder of `partially_invoiced` only)
+  - 仕入先: 🔒
+  - 販売先: 🔒
+
+- **Reset invoice to draft (`finalized -> draft`)**
+  - Admin: ✅
+  - 受注入力者: 🔒
+  - 発注者: 🔒
   - 仕入先: 🔒
   - 販売先: 🔒
 
@@ -98,6 +105,11 @@ Legend:
   - audit log before/after
 - Supplier/Customer access must be row-scoped (tenant/order scoped).
 - No role except Admin can bypass hard-stop invoice validations.
+- Hard-stop failure never locks record; fix-and-retry is allowed.
+
+## Cancel matrix source
+- Detailed matrix is maintained in `docs/permission_matrix_cancel.csv`.
+- This draft is the policy summary; CSV is the operation-level truth table.
 
 ---
 

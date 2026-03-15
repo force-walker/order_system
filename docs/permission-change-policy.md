@@ -1,6 +1,6 @@
 # 権限変更ポリシー（MVP→将来拡張）
 
-Updated: 2026-03-11
+Updated: 2026-03-16
 
 ## 目的
 業務運用の変化に合わせて、権限モデル（RBAC）を安全に変更できるようにする。
@@ -38,7 +38,14 @@ Updated: 2026-03-11
 - コード固定ではなく設定ファイル/DBテーブルでロール権限を管理
 - 例:
   - `role_permissions` テーブル
+  - `user_permission_overrides` テーブル（ユーザー個別 Allow/Deny）
   - `feature_flags`（`supplier_final_cost_mode` など）
+
+優先順位（MVP推奨）:
+1. `user_explicit_deny`
+2. `user_explicit_allow`
+3. `group_permission`
+4. default deny
 
 ## B) 2段階確定モデル
 - supplier入力 → buyer検証 → invoice確定
@@ -91,7 +98,9 @@ Updated: 2026-03-11
 
 ---
 
-## 現在の結論（2026-03-11）
+## 現在の結論（2026-03-16）
 
 - 現時点は「supplier入力補助 / buyer最終validation」で運用
+- 権限モデルは **グループベース + ユーザー個別例外** の併用を前提とする
+- cancel詳細運用は `docs/permission_matrix_cancel.csv` を基準に管理する
 - 将来変更は想定済みとし、設定切替可能な設計を優先する
