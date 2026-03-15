@@ -105,3 +105,74 @@
   - generated = 新規発行値
   - derived = 既存情報/ルールから導出値
 - Lookup-selectはID行、name/address行はderivedで扱う方針。
+
+---
+
+## 追記ログ（Discord #proj-order-system）
+
+### 決定日時（主要）
+- 2026-03-10 18:31〜22:40: ステータス遷移・例外・非機能・RBAC・業務ルール・API認可の要件確定
+- 2026-03-11 00:00〜00:40: 要件定義クローズ方針（未確定項目FIX）
+- 2026-03-12 14:00〜16:40: I/Oマトリクス整備、UOM命名、粗利項目追加、ODS/XLSX整備
+- 2026-03-13 15:50〜16:05: split構造（同一テーブル自己参照）と検証項目方針
+
+### A. ステータス遷移（確定）
+- 主フロー:
+  - `new -> confirmed -> purchasing -> shipped -> delivered -> invoiced`
+- 例外終了:
+  - `cancelled`
+- `completed` は廃止。
+- `paid` は将来版で追加（会計スコープ導入時）。
+
+### B. 権限モデル（確定）
+- 役割:
+  - Admin（全権限）
+  - 受注入力者（受注入力・請求）
+  - 発注者（配分・発注業務）
+  - 仕入先（結果登録）
+  - 販売先（荷受確認）
+- 現行方針:
+  - supplierは入力補助。
+  - 最終validationはbuyer（発注者）。
+  - 将来は設定変更で役割変更可能（権限変更ポリシーで管理）。
+
+### C. UOM/価格基準（確定）
+- 命名:
+  - `per_kg` -> `uom_kg`
+  - `per_order_uom` -> `uom_count`
+- `product_id` から `is_catch_weight` / `order_uom_type` / `pricing_basis` を自動決定。
+- 同一 `product_id` で catch-weight混在は禁止。
+
+### D. Create Order項目方針（確定）
+- `actual_weight_kg` は受注時不要（仕入結果登録時に確定）。
+- tax関連入力は受注時不要（請求計算時に適用）。
+- `delivery_date` は必須（default翌日）。
+- `target_price`, `price_ceiling`, `stockout_policy`, `comment` を運用項目として保持。
+
+### E. Invoice・粗利（確定）
+- Invoice内部項目として:
+  - `sales_unit_price`（販売単価）
+  - `unit_cost_basis`（粗利計算原価）
+  - `gross_margin_rate`（粗利率）
+- 粗利式:
+  - `(sales_unit_price - unit_cost_basis) / unit_cost_basis`
+- split仕入れ時の原価:
+  - `unit_cost_basis = Σ(purchased_qty_i × final_unit_cost_i) / Σ(purchased_qty_i)`（加重平均）
+- `gross_margin_rate` は内部項目で、請求書PDFには表示しない。
+
+### F. Split設計（確定）
+- splitは `supplier_allocations` 同一テーブルで自己参照管理。
+- 親子識別:
+  - `split_group_id`（親子共通）
+  - `parent_allocation_id`（子のみ親を参照）
+  - `is_split_child`
+- `child_final_qty_sum` はDB保存せず、検証時の計算値として扱う。
+
+### G. 帳票/API I/Oマトリクス（確定）
+- `docs/IO_from_order_to_invoice.ods` / `.xlsx` を整備。
+- 含める列:
+  - 入力/出力/継承元
+  - Allowed values
+  - Validation rule
+  - System of record
+- Auto Allocationの入力/出力項目（suggested/final初期値、line_status更新）を明示追加。
