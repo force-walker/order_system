@@ -221,3 +221,8 @@
 - APIエラーコード仕様をOpenAPI再利用componentsとしてYAML化。
 - `ErrorResponse` schemaと共通response（400/401/403/404/409/422）を定義。
 - `POST /api/invoices/{id}/finalize` で参照例を定義。
+
+### M. OpenAPI MVP骨子拡張（Discord #proj-order-system-requirements-3, 2026-03-16 03:29〜）
+- `orders / allocations / purchase-results / invoices` の主要endpointをOpenAPI skeleton化。
+- 各endpointに標準エラーレスポンス（400/401/403/404/409/422）を適用。
+- `openapi-error-components-draft.yaml` を外部参照する構成で整備。

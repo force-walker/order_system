@@ -1,0 +1,420 @@
+openapi: 3.0.3
+info:
+  title: Order System MVP API Skeleton
+  version: 0.1.0
+  description: |
+    Skeleton-level OpenAPI for core MVP endpoints.
+    Error responses are standardized via shared ErrorResponse schema/codes.
+
+servers:
+  - url: https://api.example.com
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+      required: [ok]
+
+    IdResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+      required: [id]
+
+    OrderCreateRequest:
+      type: object
+      required: [customer_id, order_datetime, delivery_type, delivery_date, billing_customer_id, items]
+      properties:
+        customer_id: { type: integer }
+        order_datetime: { type: string, format: date-time }
+        delivery_type: { type: string }
+        delivery_date: { type: string, format: date }
+        delivery_note: { type: string }
+        billing_customer_id: { type: integer }
+        order_source: { type: string }
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [product_id, ordered_qty]
+            properties:
+              product_id: { type: integer }
+              ordered_qty: { type: number, format: decimal }
+              estimated_weight_kg: { type: number, format: decimal }
+              price_ceiling: { type: number, format: decimal }
+              stockout_policy:
+                type: string
+                enum: [backorder, cancel, substitute, split]
+              comment: { type: string }
+
+    OrderCreateResponse:
+      type: object
+      required: [order_id, order_no, item_count]
+      properties:
+        order_id: { type: integer }
+        order_no: { type: string }
+        item_count: { type: integer }
+
+    AllocationOverrideRequest:
+      type: object
+      required: [final_supplier_id, final_qty, final_uom, override_reason_code, version]
+      properties:
+        final_supplier_id: { type: integer }
+        final_qty: { type: number, format: decimal }
+        final_uom: { type: string }
+        target_price: { type: number, format: decimal }
+        stockout_policy: { type: string, enum: [backorder, cancel, substitute, split] }
+        comment: { type: string }
+        override_reason_code: { type: string }
+        override_note: { type: string }
+        version: { type: integer }
+
+    AllocationSplitRequest:
+      type: object
+      required: [parts, override_reason_code, version]
+      properties:
+        parts:
+          type: array
+          minItems: 2
+          items:
+            type: object
+            required: [final_supplier_id, final_qty, final_uom]
+            properties:
+              final_supplier_id: { type: integer }
+              final_qty: { type: number, format: decimal }
+              final_uom: { type: string }
+        override_reason_code: { type: string }
+        override_note: { type: string }
+        version: { type: integer }
+
+    PurchaseResultCreateRequest:
+      type: object
+      required: [allocation_id, supplier_id, purchased_qty, result_status, version]
+      properties:
+        allocation_id: { type: integer }
+        supplier_id: { type: integer }
+        purchased_qty: { type: number, format: decimal }
+        purchased_uom: { type: string }
+        actual_weight_kg: { type: number, format: decimal }
+        unit_cost: { type: number, format: decimal }
+        final_unit_cost: { type: number, format: decimal }
+        currency: { type: string, default: JPY }
+        result_status:
+          type: string
+          enum: [not_filled, filled, partially_filled, substituted]
+        shortage_policy:
+          type: string
+          enum: [backorder, cancel, substitute, split]
+        shortage_reason_code:
+          type: string
+          enum: [stockout, quality_issue, delivery_delay, supplier_reject, manual_adjustment]
+        shortage_note: { type: string }
+        comment: { type: string }
+        version: { type: integer }
+
+    InvoiceCreateRequest:
+      type: object
+      required: [order_id, invoice_date, delivery_date, invoice_customer_id, due_date, tax_rate]
+      properties:
+        order_id: { type: integer }
+        invoice_date: { type: string, format: date }
+        delivery_date: { type: string, format: date }
+        invoice_customer_id: { type: integer }
+        payment_terms: { type: string }
+        due_date: { type: string, format: date }
+        tax_rate: { type: number, format: decimal }
+        currency: { type: string, default: HKD }
+
+    InvoiceFinalizeRequest:
+      type: object
+      required: [selected_line_ids, version]
+      properties:
+        selected_line_ids:
+          type: array
+          minItems: 1
+          items: { type: integer }
+        version: { type: integer }
+
+    InvoiceFinalizeResponse:
+      type: object
+      required: [invoice_id, status]
+      properties:
+        invoice_id: { type: integer }
+        status: { type: string, enum: [finalized] }
+
+    InvoiceResetRequest:
+      type: object
+      required: [reset_reason_code, version]
+      properties:
+        reset_reason_code:
+          type: string
+          enum: [data_error, pricing_error, tax_error, customer_change, policy_exception]
+        reset_note: { type: string }
+        version: { type: integer }
+
+    ErrorResponse:
+      $ref: ./openapi-error-components-draft.yaml#/components/schemas/ErrorResponse
+
+  responses:
+    BadRequest:
+      $ref: ./openapi-error-components-draft.yaml#/components/responses/BadRequest
+    Unauthorized:
+      $ref: ./openapi-error-components-draft.yaml#/components/responses/Unauthorized
+    Forbidden:
+      $ref: ./openapi-error-components-draft.yaml#/components/responses/Forbidden
+    NotFound:
+      $ref: ./openapi-error-components-draft.yaml#/components/responses/NotFound
+    Conflict:
+      $ref: ./openapi-error-components-draft.yaml#/components/responses/Conflict
+    UnprocessableEntity:
+      $ref: ./openapi-error-components-draft.yaml#/components/responses/UnprocessableEntity
+
+paths:
+  /api/orders:
+    post:
+      summary: Create order
+      tags: [orders]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderCreateResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /api/orders/{id}/confirm:
+    post:
+      summary: Confirm order
+      tags: [orders]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IdResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /api/allocations/run-auto:
+    post:
+      summary: Run auto allocation
+      tags: [allocations]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IdResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /api/allocations/{id}/override:
+    patch:
+      summary: Override allocation
+      tags: [allocations]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AllocationOverrideRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IdResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /api/allocations/{id}/split-line:
+    post:
+      summary: Split allocation line
+      tags: [allocations]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AllocationSplitRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IdResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /api/purchase-results:
+    post:
+      summary: Register purchase result
+      tags: [purchase-results]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseResultCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IdResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /api/purchase-results/{id}:
+    patch:
+      summary: Update purchase result
+      tags: [purchase-results]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseResultCreateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IdResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /api/invoices:
+    post:
+      summary: Create invoice
+      tags: [invoices]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IdResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /api/invoices/{id}/finalize:
+    post:
+      summary: Finalize invoice
+      tags: [invoices]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceFinalizeRequest'
+      responses:
+        '200':
+          description: Finalized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceFinalizeResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /api/invoices/{id}/reset-to-draft:
+    post:
+      summary: Reset invoice to draft (Admin only)
+      tags: [invoices]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceResetRequest'
+      responses:
+        '200':
+          description: Reset done
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }

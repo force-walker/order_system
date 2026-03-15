@@ -93,3 +93,7 @@ This package is draft-level functional specification for MVP planning and implem
 18. `docs/openapi-error-components-draft.yaml`
    - OpenAPI 3.0 の再利用可能なエラー components 定義
    - ErrorResponse schema / 共通responses(400/401/403/404/409/422) / finalize endpoint例
+
+19. `docs/openapi-mvp-skeleton-draft.yaml`
+   - orders / allocations / purchase-results / invoices のMVP OpenAPI骨子
+   - 各endpointに標準エラーレスポンスを適用した実装下書き
