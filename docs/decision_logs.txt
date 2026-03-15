@@ -176,3 +176,8 @@
   - Validation rule
   - System of record
 - Auto Allocationの入力/出力項目（suggested/final初期値、line_status更新）を明示追加。
+
+### H. 決定ログ運用（Discord #main, 2026-03-16 02:34〜02:35）
+- `./order_system/docs/decision_logs.txt` を #main チャンネルの決定事項記録先として継続利用する。
+- 既存の他チャンネル決定事項は削除せず保持する。
+- 追記時は可能な限り日時を明記する（トレーサビリティ担保）。
