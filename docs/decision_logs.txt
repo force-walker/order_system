@@ -231,3 +231,14 @@
 - API詳細化より先に、docs横断の表記ゆれ統一を優先する方針を確認。
 - 「表記統一チェックリスト（docs横断）」を作成・共有。
 - 次回セッションでチェックリストに沿って統一作業を実施予定。
+
+### O. ステータス語彙の統一方針確定（Discord #proj-order-system-requirements-3, 2026-03-16 17:44〜）
+- 候補Aを採用。
+- `order_status`:
+  - `new -> confirmed -> allocated -> purchased -> shipped -> invoiced` (+ `cancelled`)
+- `line_status`:
+  - `open -> allocated -> purchased -> shipped -> invoiced` (+ `cancelled`)
+- `invoice_line_status` は現行維持:
+  - `uninvoiced | partially_invoiced | invoiced | cancelled`
+- 次アクション:
+  - 上記語彙へ docs横断で置換・整合化を実施。
