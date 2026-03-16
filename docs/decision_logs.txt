@@ -269,3 +269,8 @@
 - `override_reason_code` を Allocation Override / Split-Line で optional に統一。
 - OpenAPI skeleton の required から `override_reason_code` を除外。
 - UAT文言も override reason optional 前提に更新。
+
+### T. 最終統一チェック（cancel/reset/unlock reason codes）（Discord #proj-order-system-requirements-3, 2026-03-16 21:50〜）
+- reason code 定義の横断確認を実施。
+- `cancel_reason_code` / `reset_reason_code` / `unlock_reason_code` のセット差分なしを確認。
+- `report-and-api-io-definition-draft.md` に最終統一セットを明文化。

@@ -319,8 +319,9 @@ Not printed on PDF:
 
 ---
 
-## 5) 確定事項（2026-03-15 FIX）
+## 5) 確定事項（2026-03-16 updated）
 - `delivery_date` はAPI必須項目（Defaultは注文日の翌日、手動変更可）
+- `override_reason_code` は任意（override時の理由入力は必須ではない）
 - `target_price` は通常は任意。ただし `override_reason_code=better_price` または `urgent_delivery` の場合は必須
 - supplier は自分の担当行に限り `final_unit_cost` を更新可（監査ログ必須）。ただし請求確定前に buyer/admin が最終確認を行う
 - 税は invoice total に対して課税し、`floor(total_amount_pretax × tax_rate)` で丸める
@@ -329,3 +330,13 @@ Not printed on PDF:
 - `manual_adjustment` をMVPで許可（`shortage_note` 必須）
 - `delivery_delay` は全選択肢（backorder限定なし）
 - `quality_issue` は優先ポリシーなし
+
+## 6) Reason code sets (final unified)
+- `cancel_reason_code`:
+  - `customer_cancelled | stockout_unresolved | data_error | duplicate_order | policy_exception`
+- `reset_reason_code` (required):
+  - `data_error | pricing_error | tax_error | customer_change | policy_exception`
+  - `reset_note` is required when `reset_reason_code=policy_exception`
+- `unlock_reason_code` (required):
+  - `pricing_correction | quantity_correction | tax_correction | customer_request | data_fix | other`
+  - `reason_note` is optional
