@@ -62,7 +62,7 @@ components:
 
     AllocationOverrideRequest:
       type: object
-      required: [final_supplier_id, final_qty, final_uom, override_reason_code, version]
+      required: [final_supplier_id, final_qty, final_uom, version]
       properties:
         final_supplier_id: { type: integer }
         final_qty: { type: number, format: decimal }
@@ -76,7 +76,7 @@ components:
 
     AllocationSplitRequest:
       type: object
-      required: [parts, override_reason_code, version]
+      required: [parts, version]
       properties:
         parts:
           type: array

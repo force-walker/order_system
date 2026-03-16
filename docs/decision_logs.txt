@@ -263,3 +263,9 @@
 - `override_reason_code` は必須要件から外す（理由コード入力を不要化）。
 - 背景: override操作は高頻度のため、運用負荷軽減を優先。
 - `reset_reason_code` / `unlock_reason_code` は現行方針を維持（理由コード必須）。
+
+### S. enum/用語統一 仕様書反映（Discord #proj-order-system-requirements-3, 2026-03-16 21:44〜）
+- `stockout_policy` を `backorder | substitute | cancel | split` に統一（`partial_ok` 廃止）。
+- `override_reason_code` を Allocation Override / Split-Line で optional に統一。
+- OpenAPI skeleton の required から `override_reason_code` を除外。
+- UAT文言も override reason optional 前提に更新。

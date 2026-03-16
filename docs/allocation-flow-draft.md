@@ -184,7 +184,7 @@ Additional columns:
 - `backorder` (入荷待ち)
 - `substitute` (代替品提案)
 - `cancel` (キャンセル)
-- `partial_ok` (一部納品可)
+- `split` (分割対応)
 
 ---
 

@@ -42,10 +42,10 @@ Scope rules:
   - Roles: `admin`, `buyer`
 - `PATCH /api/allocations/{id}/override`
   - Roles: `admin`, `buyer`
-  - Required: `override_reason_code`
+  - `override_reason_code` is optional
 - `POST /api/allocations/{id}/split-line`
   - Roles: `admin`, `buyer`
-  - Required: `override_reason_code`
+  - `override_reason_code` is optional
 - `POST /api/allocations/confirm`
   - Roles: `admin`, `buyer`
   - Validation: split-group integrity checks

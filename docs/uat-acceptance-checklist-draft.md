@@ -36,7 +36,7 @@ Updated: 2026-03-10
 
 ### UAT-A2: 手動override
 - [ ] supplier/qty/uom変更が反映される
-- [ ] `override_reason_code` 必須が効く
+- [ ] `override_reason_code` は任意で入力可能（未入力でも保存可能）
 - [ ] audit log に who/when/before/after/why が残る
 
 ### UAT-A3: split-line

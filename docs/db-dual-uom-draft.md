@@ -112,7 +112,7 @@ Auto-suggest + manual override trail.
 - `overridden_by` (FK user, nullable)
 - `overridden_at` (timestamp, nullable)
 - `target_price` (numeric(12,2), nullable)  ← 希望価格
-- `stockout_policy` (`backorder` | `substitute` | `cancel` | `partial_ok`, nullable)
+- `stockout_policy` (`backorder` | `substitute` | `cancel` | `split`, nullable)
 - `comment` (text, nullable)
 - `split_group_id` (varchar, nullable)
 - `parent_allocation_id` (self FK, nullable)

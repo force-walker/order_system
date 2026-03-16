@@ -68,7 +68,7 @@ Fix priority and approval authority for day-to-day exception decisions.
 - `backorder`
 - `substitute`
 - `cancel`
-- `partial_ok`
+- `split`
 
 ### cancel_reason_code
 - `customer_cancelled`

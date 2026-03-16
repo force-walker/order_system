@@ -25,7 +25,7 @@ Updated: 2026-03-15
 
 コード値（MVP）:
 - `order_uom_type`: `uom_count | uom_kg`
-- `stockout_policy`: `backorder | substitute | cancel | partial_ok`
+- `stockout_policy`: `backorder | substitute | cancel | split`
 - `order_status`: `new | confirmed | allocated | purchased | shipped | invoiced | cancelled`
 - `line_status`: `open | allocated | purchased | shipped | invoiced | cancelled`
 - `invoice_line_status`: `uninvoiced | partially_invoiced | invoiced | cancelled`
@@ -109,7 +109,7 @@ Request fields:
 - `target_price` (decimal(12,2), optional)
 - `stockout_policy` (enum, optional)
 - `comment` (string, optional)
-- `override_reason_code` (string, required)
+- `override_reason_code` (string, optional)
 - `override_note` (string, optional)
 - `overridden_by` (string, derived from authenticated user; request input not accepted)
 
@@ -127,7 +127,7 @@ Request fields:
   - `final_supplier_id` (int, required)
   - `final_qty` (decimal(12,3), required)
   - `final_uom` (string, required)
-- `override_reason_code` (required)
+- `override_reason_code` (optional)
 - `override_note` (optional)
 - `overridden_by` (derived from authenticated user; request input not accepted)
 
