@@ -97,3 +97,7 @@ This package is draft-level functional specification for MVP planning and implem
 19. `docs/openapi-mvp-skeleton-draft.yaml`
    - orders / allocations / purchase-results / invoices のMVP OpenAPI骨子
    - 各endpointに標準エラーレスポンスを適用した実装下書き
+
+20. `docs/terminology-unification-targets.md`
+   - 表記統一作業の対象ドキュメント（Must/Should）と進捗管理
+   - status語彙のcanonical定義と適用状況

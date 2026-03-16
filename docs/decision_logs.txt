@@ -253,3 +253,8 @@
   - `purchasing, delivered` をステータス列挙から除外
   - `allocated, purchased, shipped` 系へ統一
   - UAT遷移確認を `shipped -> invoiced` へ更新
+
+### Q. 表記統一対象ドキュメント固定（Discord #proj-order-system-requirements-3, 2026-03-16 17:49〜）
+- 先に対象ドキュメントを固定してから更新する運用へ変更。
+- `docs/terminology-unification-targets.md` を新規作成し、Must/Should対象を明文化。
+- status語彙のcanonical定義と、更新済み/整合済みファイルを記録。
