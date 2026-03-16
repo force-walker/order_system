@@ -83,7 +83,7 @@ Updated: 2026-03-10
 - [ ] 合計マイナスで確定不可
 
 ### UAT-I3: ステータス遷移
-- [ ] `delivered -> invoiced` が成立
+- [ ] `shipped -> invoiced` が成立
 - [ ] `invoiced` 以降のcancelがMVPルール通り制御される
 
 合格条件:

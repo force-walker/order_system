@@ -242,3 +242,14 @@
   - `uninvoiced | partially_invoiced | invoiced | cancelled`
 - 次アクション:
   - 上記語彙へ docs横断で置換・整合化を実施。
+
+### P. 仕様書の表記統一（第1弾）反映（Discord #proj-order-system-requirements-3, 2026-03-16 17:47〜）
+- 以下ドキュメントでステータス語彙を候補Aへ整合化:
+  - `requirements-definition-closure-v1.md`
+  - `api-authorization-spec-draft.md`
+  - `business-rules-decision-table-draft.md`
+  - `uat-acceptance-checklist-draft.md`
+- 置換内容（代表）:
+  - `purchasing, delivered` をステータス列挙から除外
+  - `allocated, purchased, shipped` 系へ統一
+  - UAT遷移確認を `shipped -> invoiced` へ更新

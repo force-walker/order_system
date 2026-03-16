@@ -39,7 +39,7 @@ Fix priority and approval authority for day-to-day exception decisions.
 
 - Cancellation authority:
   - `new`, `confirmed`: Order Entry / Buyer (policy-based)
-  - `purchasing`, `shipped`, `delivered`: Buyer + Admin
+  - `allocated`, `purchased`, `shipped`: Buyer + Admin
   - `invoiced`: Admin only and default blocked in MVP
 
 ---

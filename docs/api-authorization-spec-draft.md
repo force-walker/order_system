@@ -77,7 +77,7 @@ Scope rules:
 - `POST /api/orders/{id}/cancel`
   - Roles:
     - `new`, `confirmed`: `admin`, `order_entry`, `buyer`
-    - `purchasing`, `shipped`, `delivered`: `admin`, `buyer`
+    - `allocated`, `purchased`, `shipped`: `admin`, `buyer`
     - `invoiced`: blocked by default in MVP (admin override policy optional)
   - Required: `cancel_reason_code`
 

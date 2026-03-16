@@ -22,7 +22,7 @@ Requirements definition is considered complete for MVP with the following finali
 - Buyer/Admin must review before invoice finalization.
 
 ## MVP completion criteria alignment
-- Status model fixed: `new -> confirmed -> purchasing -> shipped -> delivered -> invoiced` (+ `cancelled`).
+- Status model fixed: `new -> confirmed -> allocated -> purchased -> shipped -> invoiced` (+ `cancelled`).
 - RBAC roles fixed: Admin / 受注入力者 / 発注者 / 仕入先 / 販売先.
 - Exception rules, non-functional requirements, API auth policy, report/API I/O definitions, and UAT checklist are prepared.
 
