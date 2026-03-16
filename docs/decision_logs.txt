@@ -258,3 +258,8 @@
 - 先に対象ドキュメントを固定してから更新する運用へ変更。
 - `docs/terminology-unification-targets.md` を新規作成し、Must/Should対象を明文化。
 - status語彙のcanonical定義と、更新済み/整合済みファイルを記録。
+
+### R. Enum方針調整（Discord #proj-order-system-requirements-3, 2026-03-16 21:43〜）
+- `override_reason_code` は必須要件から外す（理由コード入力を不要化）。
+- 背景: override操作は高頻度のため、運用負荷軽減を優先。
+- `reset_reason_code` / `unlock_reason_code` は現行方針を維持（理由コード必須）。
