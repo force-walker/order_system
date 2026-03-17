@@ -50,6 +50,17 @@ Purpose: 時系列の作業ログ（詳細）。確定事項は decisions_log.tx
     - #03-backend-api 向け実装優先順位（2週間）作成
   - ブロッカー: なし
 
+### 00:06 JST+8 進捗投稿（続き）をログ反映（OpenClawBot）
+- #08-progress-daily 投稿の続き部分を追記。
+- 転記サマリ:
+  - 明日やること:
+    - OpenAPI skeletonへの正式反映（paths/components）
+    - Alembic適用前precheck実行と差分是正
+    - #03-backend-api向け実装優先順位（2週間）作成
+  - ブロッカー: なし
+  - BUG候補: なし
+  - 参照コミット: 33b8671, 3261998, 18c61f4
+
 ---
 記法メモ:
 [YYYY-MM-DD HH:MM] actor: summary
