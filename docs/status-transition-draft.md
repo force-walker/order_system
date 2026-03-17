@@ -27,6 +27,7 @@ Exception flow:
 - `confirmed -> allocated`, `allocated -> purchased`, `shipped -> invoiced` are line-driven transitions.
 - `purchased -> shipped` is evaluated in one batch (order-level execution).
 - Automatic order-status promotion from line aggregation is not applied in MVP.
+- Multiple user-triggered transition executions on the same business day are allowed.
 - If zero target lines are eligible/updated, return conflict (`STATUS_NO_TARGET_LINES`).
 
 ## 1) `new → confirmed`
@@ -103,6 +104,7 @@ Suggested cancel reason codes:
 ## Line status policy (`order_items.line_status`)
 
 Line-level processing status is managed separately from order header status.
+Until a line is explicitly cancelled, it remains attached to the original order.
 
 Allowed values (MVP):
 - `open`

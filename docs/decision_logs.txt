@@ -299,3 +299,7 @@
 ### X. Orderステータス遷移トリガー方針（Discord #proj-order-system-requirements-3, 2026-03-17 12:39〜）
 - Order単位のステータス遷移は、ユーザー入力による一括処理で実行する。
 - line更新結果からの自動的なorderステータス昇格はMVPでは行わない。
+
+### Y. 同日複数回遷移・Line所属方針（Discord #proj-order-system-requirements-3, 2026-03-17 12:41〜）
+- ステータス遷移のユーザー一括入力は、同一営業日に複数回実行されることを許容する。
+- 各lineは、明示的にcancelされるまでは元のorderに所属し続ける。
