@@ -21,6 +21,13 @@ Exception flow:
 
 ## Transition rules
 
+## Global evaluation policy (MVP)
+- Line status is updated first.
+- Order header status is evaluated from line results after each transition execution.
+- `confirmed -> allocated`, `allocated -> purchased`, `shipped -> invoiced` are line-driven transitions.
+- `purchased -> shipped` is evaluated in one batch (order-level execution).
+- If zero target lines are eligible/updated, return conflict (`STATUS_NO_TARGET_LINES`).
+
 ## 1) `new → confirmed`
 - Actor: Order Entry, Admin
 - Required:
@@ -28,31 +35,46 @@ Exception flow:
   - at least 1 valid order line
   - mandatory pricing basis fields
 
-## 2) `confirmed → allocated`
+## 2) `confirmed → allocated` (line-driven)
 - Actor: Buyer, Admin
-- Required:
+- Required (per target line):
   - allocation run completed for target lines
-  - allocation target lines are `line_status=open`
+  - target line is `line_status=open`
+  - `final_supplier_id` exists and `final_qty > 0`
+- Behavior:
+  - only eligible lines move to `allocated`
+  - order status is recalculated after line updates
 
-## 3) `allocated → purchased`
+## 3) `allocated → purchased` (line-driven)
 - Actor: Buyer, Admin
-- Required:
-  - purchase result registration started
+- Required (per target line):
+  - purchase result exists for the line/allocation
   - required fields entered (`supplier_id`, `purchased_qty`, `final_unit_cost`, `result_status`)
+  - `result_status != not_filled`
+- Behavior:
+  - only eligible lines move to `purchased`
+  - order status is recalculated after line updates
 
-## 4) `purchased → shipped`
+## 4) `purchased → shipped` (order batch)
 - Actor: Buyer, Admin
 - Required:
-  - all active lines are not `result_status=not_filled`
+  - all active non-cancelled lines are shippable
+  - no active line remains `result_status=not_filled`
   - shortage handling fixed when `shortage_qty > 0`
-  - no blocking invoice flags without explicit reason
+- Behavior:
+  - single batch decision for the order
+  - lines that cannot be shipped must be explicitly set to `cancelled` by user before retry
 
-## 5) `shipped → invoiced`
+## 5) `shipped → invoiced` (line-driven + invoice finalize)
 - Actor: Billing, Admin
-- Required:
+- Required (for selected invoice lines):
   - invoice generated and finalized (split invoicing allowed)
   - catch-weight lines have `actual_weight_kg`
   - price/tax validations pass
+- Behavior:
+  - selected eligible lines move to `invoiced`
+  - non-selected / unfinished lines are not auto-cancelled
+  - bulk cancel is allowed only by explicit user input
 
 ---
 
@@ -60,6 +82,9 @@ Exception flow:
 
 - Allowed from: `new`, `confirmed`, `allocated`, `purchased`, `shipped`
 - Not allowed from: `invoiced` (MVP default hard-stop)
+- Bulk cancel policy:
+  - no automatic bulk cancel before invoicing
+  - bulk cancel is executed only by explicit user input (manual operation)
 - Required on cancel:
   - cancel reason code
   - actor + timestamp

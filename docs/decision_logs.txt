@@ -288,3 +288,10 @@
   - `unit_price_uom_count`
   - `unit_price_uom_kg`
   を追加し、MD仕様との項目名整合を補完。
+
+### W. 状態遷移条件の厳密化（Discord #proj-order-system-requirements-3, 2026-03-17 11:45〜12:01）
+- line先行・order後判定方針を採用（line status更新後にorder status再計算）。
+- `confirmed -> allocated`, `allocated -> purchased`, `shipped -> invoiced` はline単位判定。
+- `purchased -> shipped` はorder一括判定。
+- 未完lineの一括キャンセルは自動実行しない。
+- 一括キャンセルは明示的なユーザー入力時のみ実行する。
