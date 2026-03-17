@@ -144,10 +144,26 @@ components:
 
     InvoiceFinalizeResponse:
       type: object
-      required: [invoice_id, status]
+      required: [invoice_id, status, is_locked]
       properties:
         invoice_id: { type: integer }
         status: { type: string, enum: [finalized] }
+        is_locked: { type: boolean }
+
+    InvoiceResetResponse:
+      type: object
+      required: [invoice_id, status]
+      properties:
+        invoice_id: { type: integer }
+        status: { type: string, enum: [draft] }
+
+    InvoiceUnlockResponse:
+      type: object
+      required: [invoice_id, status, is_locked]
+      properties:
+        invoice_id: { type: integer }
+        status: { type: string, enum: [finalized] }
+        is_locked: { type: boolean }
 
     InvoiceResetRequest:
       type: object
@@ -161,19 +177,24 @@ components:
 
     OrderBulkTransitionRequest:
       type: object
-      required: [to_status]
+      required: [from_status, to_status]
       properties:
+        from_status:
+          type: string
+          enum: [confirmed, allocated, purchased, shipped]
         to_status:
           type: string
           enum: [allocated, purchased, shipped, invoiced]
-        target_line_ids:
-          type: array
-          items: { type: integer }
-          description: Optional explicit line targets for line-driven transitions.
-        bulk_cancel_unfinished:
-          type: boolean
-          default: false
-          description: Executed only when user explicitly requests bulk cancel.
+
+    OrderBulkTransitionResponse:
+      type: object
+      required: [order_id, updated_lines, updated_order_status]
+      properties:
+        order_id: { type: integer }
+        updated_lines: { type: integer }
+        updated_order_status:
+          type: string
+          enum: [allocated, purchased, shipped, invoiced]
 
     ErrorResponse:
       $ref: ./openapi-error-components-draft.yaml#/components/schemas/ErrorResponse
@@ -193,7 +214,7 @@ components:
       $ref: ./openapi-error-components-draft.yaml#/components/responses/UnprocessableEntity
 
 paths:
-  /api/orders:
+  /api/v1/orders:
     post:
       summary: Create order
       tags: [orders]
@@ -215,27 +236,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
-  /api/orders/{id}/confirm:
-    post:
-      summary: Confirm order
-      tags: [orders]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: integer }
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/IdResponse' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Conflict' }
-
-  /api/orders/{id}/bulk-transition:
+  /api/v1/orders/{order_id}/bulk-transition:
     post:
       summary: User-triggered order bulk transition
       description: |
@@ -244,7 +245,7 @@ paths:
       tags: [orders]
       parameters:
         - in: path
-          name: id
+          name: order_id
           required: true
           schema: { type: integer }
       requestBody:
@@ -258,14 +259,14 @@ paths:
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/IdResponse' }
+              schema: { $ref: '#/components/schemas/OrderBulkTransitionResponse' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
-  /api/allocations/run-auto:
+  /api/v1/allocations/run-auto:
     post:
       summary: Run auto allocation
       tags: [allocations]
@@ -279,13 +280,13 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
 
-  /api/allocations/{id}/override:
+  /api/v1/allocations/{allocation_id}/override:
     patch:
       summary: Override allocation
       tags: [allocations]
       parameters:
         - in: path
-          name: id
+          name: allocation_id
           required: true
           schema: { type: integer }
       requestBody:
@@ -307,13 +308,13 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
-  /api/allocations/{id}/split-line:
+  /api/v1/allocations/{allocation_id}/split-line:
     post:
       summary: Split allocation line
       tags: [allocations]
       parameters:
         - in: path
-          name: id
+          name: allocation_id
           required: true
           schema: { type: integer }
       requestBody:
@@ -335,7 +336,7 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
-  /api/purchase-results:
+  /api/v1/purchase-results:
     post:
       summary: Register purchase result
       tags: [purchase-results]
@@ -358,13 +359,13 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
-  /api/purchase-results/{id}:
+  /api/v1/purchase-results/{result_id}:
     patch:
       summary: Update purchase result
       tags: [purchase-results]
       parameters:
         - in: path
-          name: id
+          name: result_id
           required: true
           schema: { type: integer }
       requestBody:
@@ -386,7 +387,7 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
-  /api/invoices:
+  /api/v1/invoices:
     post:
       summary: Create invoice
       tags: [invoices]
@@ -409,13 +410,13 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
-  /api/invoices/{id}/finalize:
+  /api/v1/invoices/{invoice_id}/finalize:
     post:
       summary: Finalize invoice
       tags: [invoices]
       parameters:
         - in: path
-          name: id
+          name: invoice_id
           required: true
           schema: { type: integer }
       requestBody:
@@ -438,13 +439,13 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
-  /api/invoices/{id}/reset-to-draft:
+  /api/v1/invoices/{invoice_id}/reset-to-draft:
     post:
       summary: Reset invoice to draft (Admin only)
       tags: [invoices]
       parameters:
         - in: path
-          name: id
+          name: invoice_id
           required: true
           schema: { type: integer }
       requestBody:
@@ -459,7 +460,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IdResponse'
+                $ref: '#/components/schemas/InvoiceResetResponse'
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -467,7 +468,7 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
-  /api/invoices/{id}/unlock:
+  /api/v1/invoices/{invoice_id}/unlock:
     post:
       summary: Unlock finalized invoice (Admin only)
       description: |
@@ -476,7 +477,7 @@ paths:
       tags: [invoices]
       parameters:
         - in: path
-          name: id
+          name: invoice_id
           required: true
           schema: { type: integer }
       requestBody:
@@ -499,7 +500,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IdResponse'
+                $ref: '#/components/schemas/InvoiceUnlockResponse'
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }

@@ -1,108 +1,47 @@
 openapi: 3.0.3
 info:
   title: Order System Error Components Draft
-  version: 0.1.0
-  description: Reusable OpenAPI components for MVP error responses.
+  version: 0.2.0
+  description: Reusable OpenAPI components aligned to current API runtime error payload.
 
 components:
   schemas:
     ErrorResponse:
       type: object
-      required:
-        - error_code
-        - message
+      required: [code, message]
       properties:
-        error_code:
+        code:
           type: string
           description: Stable application error code.
           enum:
-            - INVALID_REQUEST_FORMAT
-            - MISSING_REQUIRED_FIELD
-            - INVALID_REASON_CODE
-            - INVALID_DATE_FORMAT
             - AUTH_REQUIRED
-            - AUTH_INVALID_TOKEN
-            - AUTH_EXPIRED_TOKEN
-            - PERMISSION_DENIED
-            - SCOPE_FORBIDDEN
-            - LOCKED_PERIOD_FORBIDDEN
-            - RESOURCE_NOT_FOUND
+            - FORBIDDEN
             - ORDER_NOT_FOUND
-            - INVOICE_NOT_FOUND
-            - ALLOCATION_NOT_FOUND
-            - VERSION_CONFLICT
-            - STATUS_TRANSITION_CONFLICT
+            - ORDER_STATUS_MISMATCH
+            - INVALID_TRANSITION_PAIR
             - STATUS_NO_TARGET_LINES
-            - INVOICE_LOCKED
-            - DUPLICATE_INVOICE_NO
-            - REGENERATION_IN_PROGRESS
-            - VALIDATION_FAILED
-            - INVALID_BILLABLE_QTY
-            - MISSING_ACTUAL_WEIGHT
-            - MISSING_REQUIRED_UNIT_PRICE
-            - INVOICEABLE_FLAG_FALSE_INCLUDED
-            - RESULT_STATUS_NOT_FILLED_INCLUDED
-            - TAX_MISMATCH
-            - TOTAL_MISMATCH
-            - NEGATIVE_AMOUNT_NOT_ALLOWED
-            - UNLOCK_REASON_REQUIRED
-            - SHORTAGE_NOTE_REQUIRED
+            - ORDER_WEIGHT_REQUIRED
+            - INVOICE_NOT_FOUND
+            - INVOICE_NOT_DRAFT
+            - INVOICE_NOT_FINALIZED
+            - INVOICE_NOT_LOCKED_FINALIZED
+            - INVALID_RESET_REASON_CODE
+            - INVALID_UNLOCK_REASON_CODE
+            - NEGATIVE_INVOICE_TOTAL
+            - NO_INVOICEABLE_ITEMS
+            - CATCH_WEIGHT_REQUIRED
+            - UNIT_PRICE_UOM_COUNT_REQUIRED
+            - UNIT_PRICE_UOM_KG_REQUIRED
+            - ALLOCATION_NOT_FOUND
+            - ALLOCATION_INVALID
+            - ALLOCATION_INVALID_TARGET_QTY
+            - SPLIT_QTY_MISMATCH
+            - SPLIT_GROUP_MISSING_PARENT
+            - SPLIT_GROUP_MIN_CHILDREN
+            - SPLIT_GROUP_QTY_MISMATCH
+            - SPLIT_GROUP_UOM_MISMATCH
         message:
           type: string
-        field:
-          type: string
-          nullable: true
-        resource:
-          type: string
-          nullable: true
-          enum: [order, order_line, allocation, purchase_result, invoice, invoice_line]
-        resource_id:
-          oneOf:
-            - type: string
-            - type: integer
-          nullable: true
-        detail:
-          type: object
-          additionalProperties: true
-          nullable: true
-        trace_id:
-          type: string
-          nullable: true
-
-    ErrorCode:
-      type: string
-      enum:
-        - INVALID_REQUEST_FORMAT
-        - MISSING_REQUIRED_FIELD
-        - INVALID_REASON_CODE
-        - INVALID_DATE_FORMAT
-        - AUTH_REQUIRED
-        - AUTH_INVALID_TOKEN
-        - AUTH_EXPIRED_TOKEN
-        - PERMISSION_DENIED
-        - SCOPE_FORBIDDEN
-        - LOCKED_PERIOD_FORBIDDEN
-        - RESOURCE_NOT_FOUND
-        - ORDER_NOT_FOUND
-        - INVOICE_NOT_FOUND
-        - ALLOCATION_NOT_FOUND
-        - VERSION_CONFLICT
-        - STATUS_TRANSITION_CONFLICT
-        - STATUS_NO_TARGET_LINES
-        - INVOICE_LOCKED
-        - DUPLICATE_INVOICE_NO
-        - REGENERATION_IN_PROGRESS
-        - VALIDATION_FAILED
-        - INVALID_BILLABLE_QTY
-        - MISSING_ACTUAL_WEIGHT
-        - MISSING_REQUIRED_UNIT_PRICE
-        - INVOICEABLE_FLAG_FALSE_INCLUDED
-        - RESULT_STATUS_NOT_FILLED_INCLUDED
-        - TAX_MISMATCH
-        - TOTAL_MISMATCH
-        - NEGATIVE_AMOUNT_NOT_ALLOWED
-        - UNLOCK_REASON_REQUIRED
-        - SHORTAGE_NOTE_REQUIRED
 
   responses:
     BadRequest:
@@ -112,11 +51,10 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           examples:
-            missingField:
+            badRequest:
               value:
-                error_code: MISSING_REQUIRED_FIELD
-                message: required field is missing
-                field: invoice_date
+                code: ORDER_WEIGHT_REQUIRED
+                message: per_kg item requires estimated_weight_kg or actual_weight_kg
 
     Unauthorized:
       description: Unauthorized.
@@ -127,8 +65,8 @@ components:
           examples:
             authRequired:
               value:
-                error_code: AUTH_REQUIRED
-                message: authentication is required
+                code: AUTH_REQUIRED
+                message: missing auth headers
 
     Forbidden:
       description: Forbidden.
@@ -139,8 +77,8 @@ components:
           examples:
             denied:
               value:
-                error_code: PERMISSION_DENIED
-                message: role is not allowed for this operation
+                code: FORBIDDEN
+                message: forbidden
 
     NotFound:
       description: Resource not found.
@@ -151,59 +89,35 @@ components:
           examples:
             invoiceNotFound:
               value:
-                error_code: INVOICE_NOT_FOUND
+                code: INVOICE_NOT_FOUND
                 message: invoice not found
-                resource: invoice
-                resource_id: inv_123
 
     Conflict:
-      description: State/version conflict.
+      description: State conflict.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           examples:
-            versionConflict:
-              value:
-                error_code: VERSION_CONFLICT
-                message: Record has been updated by another user. Please reload and retry.
-                field: version
-                resource: invoice
-                resource_id: inv_123
-                detail:
-                  current_version: 18
-            duplicateInvoiceNo:
-              value:
-                error_code: DUPLICATE_INVOICE_NO
-                message: invoice number duplication detected
-                field: invoice_no
-                detail:
-                  invoice_no: INV/2026/00042
             noTargetLines:
               value:
-                error_code: STATUS_NO_TARGET_LINES
-                message: no eligible lines found for this transition
+                code: STATUS_NO_TARGET_LINES
+                message: no eligible lines
 
     UnprocessableEntity:
-      description: Business validation error.
+      description: Validation error.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           examples:
-            taxMismatch:
+            invalidTransition:
               value:
-                error_code: TAX_MISMATCH
-                message: tax amount does not match floor(total_amount_pretax * tax_rate)
-                field: tax_amount
-            missingActualWeight:
-              value:
-                error_code: MISSING_ACTUAL_WEIGHT
-                message: catch-weight line requires actual_weight_kg
-                field: actual_weight_kg
+                code: INVALID_TRANSITION_PAIR
+                message: invalid transition pair
 
 paths:
-  /api/invoices/{id}/finalize:
+  /api/v1/invoices/{invoice_id}/finalize:
     post:
       summary: Finalize invoice (response mapping sample)
       responses:
