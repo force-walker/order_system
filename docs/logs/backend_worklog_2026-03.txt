@@ -13,3 +13,40 @@ Purpose: 時系列の作業ログ（詳細）。確定事項は docs/decision_lo
 [YYYY-MM-DD HH:MM] actor: summary
 - detail
 - detail
+
+[2026-03-18][OpenClawBot]
+PROGRESS:
+- 今日やったこと:
+  - APIプレフィックスを /api/v1 に統一
+  - MVP v2準拠でEnum/モデル/ルートを整合（order/invoice/allocation）
+  - order bulk-transition、invoice finalize/reset-to-draft/unlock 実装
+  - エラーレスポンスを {code,message} 形式に統一
+  - OpenAPI関連ドキュメント（skeleton/error-codes）を実装に同期
+  - P0対応: JWT認証（login/refresh/logout/me）実装
+  - P0対応: version列追加＋楽観ロック（409 VERSION_CONFLICT）実装
+  - P0対応: purchase-results API（create/update/bulk-upsert）実装
+  - P0対応: 最小OpenAPI契約テスト追加、READMEにmigration順/検証手順を追記
+- 明日やること:
+  - P1着手（DB制約/インデックス見直し、監査ログ参照API、Master API拡張）
+  - 契約テストを増強（主要エンドポイントのrequest/response/error網羅）
+  - ローカルでpytest実行環境を整備してテスト実行結果を固定化
+- ブロッカー:
+  - 現環境で pytest 未導入（`python3 -m pytest` が No module named pytest）
+
+BUG候補:
+- なし / あり（概要）:
+  - あり（軽微）: 一部ドキュメント/実装でHTTPエラーコード命名の粒度差が残る可能性
+- 再現手順（簡易）:
+  - OpenAPI draft と runtime のエラーcode一覧を突合すると差分が出るケースあり
+- 影響範囲（簡易）:
+  - 仕様レビュー/QA観点（実行時APIは動作、主にドキュメント整合）
+
+参照:
+- スレッド/メッセージURL
+  - #03-backend（本スレッド）
+  - 主要コミット: 54567d6, 3c348ab, 10b2e8b, 52cc271, e1d2fa1
+
+### 01:08 JST+8 ログ更新（OpenClawBot）
+- #08-progress-daily 共有内容を backend worklog として反映済みであることを確認。
+- ブロッカー表記を整形:
+  - 現環境で pytest 未導入（`python3 -m pytest` が `No module named pytest`）
