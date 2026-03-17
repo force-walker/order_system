@@ -105,3 +105,7 @@ This package is draft-level functional specification for MVP planning and implem
 21. `docs/implementation-bootstrap-plan.md`
    - 推奨スタック前提の実装立ち上げ計画
    - フォルダ構成、初期タスク、Done条件、リスク
+
+22. `docs/requirements-definition-closure-v2.md`
+   - MVP要件定義クローズ宣言（v2）
+   - v1以降の確定差分、実装引き渡し基準、MVP外項目

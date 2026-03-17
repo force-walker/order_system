@@ -328,3 +328,8 @@
   - API P95 1.5s、グリッドP95 2.0s、allocation 5,000 lines/5分
 - `implementation-bootstrap-plan.md` を新規作成。
   - 推奨スタック前提のフォルダ構成、初期タスク、Done条件を定義。
+
+### AD. 要件定義クローズ宣言 v2（Discord #proj-order-system-requirements-3, 2026-03-17 〜）
+- `requirements-definition-closure-v2.md` を作成し、MVP要件定義のクローズを宣言。
+- v1以降の確定差分（status/enum/境界仕様/UAT基準）を集約。
+- 実装引き渡し基準とMVP外項目を明文化。
