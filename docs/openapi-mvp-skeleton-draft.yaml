@@ -46,6 +46,8 @@ components:
               product_id: { type: integer }
               ordered_qty: { type: number, format: decimal }
               estimated_weight_kg: { type: number, format: decimal }
+              unit_price_uom_count: { type: number, format: decimal, nullable: true }
+              unit_price_uom_kg: { type: number, format: decimal, nullable: true }
               price_ceiling: { type: number, format: decimal }
               stockout_policy:
                 type: string

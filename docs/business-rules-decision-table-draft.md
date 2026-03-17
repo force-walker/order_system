@@ -13,7 +13,7 @@ Fix priority and approval authority for day-to-day exception decisions.
 |---|---|---|---|---|
 | 1 | Legal/Invoice consistency | Tax/amount consistency cannot be violated | Block invalid finalize | Admin |
 | 2 | Customer agreed terms | Respect agreed delivery/quality terms | Follow customer contract | 受注責任者 |
-| 3 | Stockout handling | Apply `stockout_policy` per line/customer | partial/substitute/backorder/cancel | 発注責任者 |
+| 3 | Stockout handling | Apply `stockout_policy` per line/customer | split/substitute/backorder/cancel | 発注責任者 |
 | 4 | Urgent delivery | Allow override/split for deadline protection | `urgent_delivery` override | 発注責任者 |
 | 5 | Price exception | Threshold-based approval | <=5% buyer, >5% admin | Admin (threshold exceed) |
 | 6 | Split-line operations | Child totals/UOM must match parent | Block if mismatch | 発注責任者 |

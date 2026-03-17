@@ -14,11 +14,11 @@
 
 ### 1) 用語確認
 **Input（Koji）**
-- `unit_price_order_uom` と `unit_price_per_kg` の意味を再確認したい。
+- `unit_price_uom_count` と `unit_price_uom_kg` の意味を再確認したい。
 
 **Output（Bot）**
-- `unit_price_order_uom`: 数量単位（count）あたり販売単価。
-- `unit_price_per_kg`: kg単位あたり販売単価。
+- `unit_price_uom_count`: 数量単位（count）あたり販売単価。
+- `unit_price_uom_kg`: kg単位あたり販売単価。
 - 計算の使い分け（`uom_count` / `uom_kg`）を説明。
 
 ---

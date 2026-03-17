@@ -280,3 +280,11 @@
 - 単価項目名を `unit_price_uom_count / unit_price_uom_kg` に統一。
 - `unit_cost`（暫定）と `final_unit_cost`（確定）の責務を明文化。
 - `input / derived / generated` の定義をI/O仕様へ追記。
+
+### V. OpenAPI/MD差分の最終補正（Discord #proj-order-system-requirements-3, 2026-03-17 11:17〜）
+- Business rules文言の `partial` 表現を `split` に統一。
+- 作業ログ内の旧単価項目名を `unit_price_uom_count / unit_price_uom_kg` へ更新。
+- `openapi-mvp-skeleton-draft.yaml` の `OrderCreateRequest.items` に
+  - `unit_price_uom_count`
+  - `unit_price_uom_kg`
+  を追加し、MD仕様との項目名整合を補完。
