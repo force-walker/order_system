@@ -1,6 +1,6 @@
 # Order System 要件定義 決定ログ（Discord #proj-order-system-requirements）
 
-更新日: 2026-03-16
+更新日: 2026-03-18
 
 ## 1. 全体方針
 - I/O定義の正（Source of Truth）は Excel: `docs/IO_from_order_to_invoice_revised_v_2.xlsx`。
@@ -96,3 +96,31 @@
   - generated = 新規発行値
   - derived = 既存情報/ルールから導出値
 - Lookup-selectはID行、name/address行はderivedで扱う方針。
+
+## 12. Architecture/DB v2整合（2026-03-17 追加）
+- システム構成は4層を採用:
+  - Frontend SPA / Backend API(`/api/v1`) / Worker(Batch) / PostgreSQL
+- 監視方式は MVPで以下を採用:
+  - 構造化ログ + メトリクス + アラート
+- 注文状態遷移は「ユーザー明示バルク実行」を採用（自動昇格なし）
+- ステータス定義の固定:
+  - Order: `new -> confirmed -> allocated -> purchased -> shipped -> invoiced` + `cancelled`
+  - Line: `open -> allocated -> purchased -> shipped -> invoiced` + `cancelled`
+  - `paid` はMVPスコープ外
+- Dual-UOM方針を採用:
+  - `uom_count / uom_kg`
+  - `unit_price_uom_count / unit_price_uom_kg`
+- 分割請求方針を固定:
+  - `order_items 1-N invoice_items` を許容
+- 主要技術選定（MVP）:
+  - Backend: FastAPI + SQLAlchemy + Alembic
+  - DB: PostgreSQL
+  - Batch: 初期はアプリ内ジョブ（将来 Redis/Celery 拡張）
+  - Auth: JWT + RBAC
+  - API契約: OpenAPI 3.0
+- 非機能目標（MVP）:
+  - API P95 <= 1.5s
+  - Grid初期表示 P95 <= 2.0s
+  - Allocation 5,000行 <= 5分
+  - 可用性 99.5%（月次）
+  - RPO <= 1h / RTO <= 4h
