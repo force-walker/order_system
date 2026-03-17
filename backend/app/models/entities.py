@@ -190,6 +190,8 @@ class Invoice(Base):
     tax_total: Mapped[float] = mapped_column(Numeric(12, 2))
     grand_total: Mapped[float] = mapped_column(Numeric(12, 2))
     status: Mapped[InvoiceStatus] = mapped_column(Enum(InvoiceStatus), default=InvoiceStatus.draft, index=True)
+    is_locked: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    locked_at: Mapped[datetime | None] = mapped_column(DateTime)
     created_by: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

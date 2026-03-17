@@ -5,8 +5,9 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import AuthContext, require_roles
 from app.db.session import get_db
-from app.models.entities import Order, OrderItem, OrderStatus, PricingBasis
+from app.models.entities import LineStatus, Order, OrderItem, OrderStatus, PricingBasis
 from app.schemas.order import OrderCreate, OrderCreateResponse
+from app.schemas.transition import OrderBulkTransitionRequest, OrderBulkTransitionResponse
 from app.services.invoice_calc import calc_line
 
 router = APIRouter(prefix='/orders', tags=['orders'])
@@ -70,3 +71,52 @@ def create_order(
 
     db.commit()
     return OrderCreateResponse(order_id=order.id, order_no=order.order_no, item_count=len(payload.items))
+
+
+_TRANSITION_RULES: dict[tuple[OrderStatus, OrderStatus], tuple[LineStatus, LineStatus]] = {
+    (OrderStatus.confirmed, OrderStatus.allocated): (LineStatus.open, LineStatus.allocated),
+    (OrderStatus.allocated, OrderStatus.purchased): (LineStatus.allocated, LineStatus.purchased),
+    (OrderStatus.purchased, OrderStatus.shipped): (LineStatus.purchased, LineStatus.shipped),
+    (OrderStatus.shipped, OrderStatus.invoiced): (LineStatus.shipped, LineStatus.invoiced),
+}
+
+
+@router.post('/{order_id}/bulk-transition', response_model=OrderBulkTransitionResponse)
+def bulk_transition_order(
+    order_id: int,
+    payload: OrderBulkTransitionRequest,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_roles('admin', 'buyer', 'order_entry')),
+) -> OrderBulkTransitionResponse:
+    order = db.query(Order).filter(Order.id == order_id).one_or_none()
+    if order is None:
+        raise HTTPException(status_code=404, detail='order not found')
+
+    key = (payload.from_status, payload.to_status)
+    if key not in _TRANSITION_RULES:
+        raise HTTPException(status_code=422, detail='invalid transition pair')
+
+    if order.status != payload.from_status:
+        raise HTTPException(status_code=409, detail='order status mismatch')
+
+    from_line, to_line = _TRANSITION_RULES[key]
+    target_lines = (
+        db.query(OrderItem)
+        .filter(OrderItem.order_id == order_id, OrderItem.line_status == from_line)
+        .all()
+    )
+
+    if not target_lines:
+        raise HTTPException(status_code=409, detail={'code': 'STATUS_NO_TARGET_LINES', 'message': 'no eligible lines'})
+
+    for line in target_lines:
+        line.line_status = to_line
+
+    order.status = payload.to_status
+    db.commit()
+
+    return OrderBulkTransitionResponse(
+        order_id=order.id,
+        updated_lines=len(target_lines),
+        updated_order_status=order.status,
+    )

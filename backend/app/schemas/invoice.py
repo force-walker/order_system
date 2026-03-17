@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.entities import InvoiceStatus
 
@@ -26,3 +26,25 @@ class InvoiceCreateResponse(BaseModel):
 class InvoiceFinalizeResponse(BaseModel):
     invoice_id: int
     status: InvoiceStatus
+    is_locked: bool
+
+
+class InvoiceResetRequest(BaseModel):
+    reset_reason_code: str
+    reason_note: str | None = Field(default=None, max_length=500)
+
+
+class InvoiceResetResponse(BaseModel):
+    invoice_id: int
+    status: InvoiceStatus
+
+
+class InvoiceUnlockRequest(BaseModel):
+    unlock_reason_code: str
+    reason_note: str | None = Field(default=None, max_length=500)
+
+
+class InvoiceUnlockResponse(BaseModel):
+    invoice_id: int
+    status: InvoiceStatus
+    is_locked: bool

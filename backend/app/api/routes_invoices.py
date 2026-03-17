@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -5,8 +6,16 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import AuthContext, require_roles
 from app.db.session import get_db
-from app.models.entities import Invoice, InvoiceItem, InvoiceStatus, Order, OrderItem, PricingBasis
-from app.schemas.invoice import InvoiceCreateRequest, InvoiceCreateResponse, InvoiceFinalizeResponse
+from app.models.entities import AuditAction, AuditLog, Invoice, InvoiceItem, InvoiceLineStatus, InvoiceStatus, Order, OrderItem, PricingBasis
+from app.schemas.invoice import (
+    InvoiceCreateRequest,
+    InvoiceCreateResponse,
+    InvoiceFinalizeResponse,
+    InvoiceResetRequest,
+    InvoiceResetResponse,
+    InvoiceUnlockRequest,
+    InvoiceUnlockResponse,
+)
 from app.services.invoice_calc import calc_line, quantize_jpy
 
 router = APIRouter(prefix='/invoices', tags=['invoices'])
@@ -115,6 +124,94 @@ def finalize_invoice(
     if invoice.grand_total < 0:
         raise HTTPException(status_code=400, detail='negative invoice total')
 
+    if invoice.status != InvoiceStatus.draft:
+        raise HTTPException(status_code=409, detail='invoice is not draft')
+
     invoice.status = InvoiceStatus.finalized
+    invoice.is_locked = True
+    invoice.locked_at = datetime.utcnow()
     db.commit()
-    return InvoiceFinalizeResponse(invoice_id=invoice.id, status=invoice.status)
+    return InvoiceFinalizeResponse(invoice_id=invoice.id, status=invoice.status, is_locked=invoice.is_locked)
+
+
+@router.post('/{invoice_id}/reset-to-draft', response_model=InvoiceResetResponse)
+def reset_invoice_to_draft(
+    invoice_id: int,
+    payload: InvoiceResetRequest,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_roles('admin', 'order_entry')),
+) -> InvoiceResetResponse:
+    allowed_codes = {'data_error', 'pricing_error', 'tax_error', 'customer_change', 'policy_exception'}
+    if payload.reset_reason_code not in allowed_codes:
+        raise HTTPException(status_code=422, detail='invalid reset_reason_code')
+
+    invoice = db.query(Invoice).filter(Invoice.id == invoice_id).one_or_none()
+    if invoice is None:
+        raise HTTPException(status_code=404, detail='invoice not found')
+    if invoice.status != InvoiceStatus.finalized:
+        raise HTTPException(status_code=409, detail='only finalized invoice can reset to draft')
+
+    invoice.status = InvoiceStatus.draft
+    invoice.is_locked = False
+    invoice.locked_at = None
+
+    db.query(InvoiceItem).filter(InvoiceItem.invoice_id == invoice.id).update(
+        {InvoiceItem.invoice_line_status: InvoiceLineStatus.uninvoiced}, synchronize_session=False
+    )
+
+    db.add(
+        AuditLog(
+            entity_type='invoice',
+            entity_id=invoice.id,
+            action=AuditAction.status_change,
+            before_json={'status': 'finalized'},
+            after_json={'status': 'draft'},
+            reason_code=payload.reset_reason_code,
+            changed_by=auth.user_id,
+        )
+    )
+
+    db.commit()
+    return InvoiceResetResponse(invoice_id=invoice.id, status=invoice.status)
+
+
+@router.post('/{invoice_id}/unlock', response_model=InvoiceUnlockResponse)
+def unlock_invoice(
+    invoice_id: int,
+    payload: InvoiceUnlockRequest,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_roles('admin')),
+) -> InvoiceUnlockResponse:
+    allowed_codes = {
+        'pricing_correction',
+        'quantity_correction',
+        'tax_correction',
+        'customer_request',
+        'data_fix',
+        'other',
+    }
+    if payload.unlock_reason_code not in allowed_codes:
+        raise HTTPException(status_code=422, detail='invalid unlock_reason_code')
+
+    invoice = db.query(Invoice).filter(Invoice.id == invoice_id).one_or_none()
+    if invoice is None:
+        raise HTTPException(status_code=404, detail='invoice not found')
+    if invoice.status != InvoiceStatus.finalized or not invoice.is_locked:
+        raise HTTPException(status_code=409, detail='target must be finalized and locked')
+
+    invoice.is_locked = False
+
+    db.add(
+        AuditLog(
+            entity_type='invoice',
+            entity_id=invoice.id,
+            action=AuditAction.override,
+            before_json={'is_locked': True, 'status': 'finalized'},
+            after_json={'is_locked': False, 'status': 'finalized', 'reason_note': payload.reason_note},
+            reason_code=payload.unlock_reason_code,
+            changed_by=auth.user_id,
+        )
+    )
+
+    db.commit()
+    return InvoiceUnlockResponse(invoice_id=invoice.id, status=invoice.status, is_locked=invoice.is_locked)
