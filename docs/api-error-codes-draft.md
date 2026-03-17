@@ -1,196 +1,122 @@
 # API Error Codes Draft (MVP)
 
-Updated: 2026-03-16
-Status: Draft (implementation-ready baseline)
+Updated: 2026-03-18
+Status: Draft (aligned with current implementation)
 
 ## 1. Standard Error Response
 
 ```json
 {
-  "error_code": "VERSION_CONFLICT",
-  "message": "Record has been updated by another user. Please reload and retry.",
-  "field": "version",
-  "resource": "invoice",
-  "resource_id": "inv_123",
-  "detail": {
-    "current_version": 18
-  },
-  "trace_id": "req_..."
+  "code": "STATUS_NO_TARGET_LINES",
+  "message": "no eligible lines"
 }
 ```
 
 Required fields:
-- `error_code` (string, stable)
+- `code` (string, stable)
 - `message` (string, human readable)
-
-Optional fields:
-- `field` (string)
-- `resource` (string)
-- `resource_id` (string|number)
-- `detail` (object)
-- `trace_id` (string)
 
 ---
 
 ## 2. HTTP Status Usage Policy
 
-- `400 Bad Request`: malformed request / missing required control fields
-- `401 Unauthorized`: missing/invalid auth
-- `403 Forbidden`: role/scope not allowed
-- `404 Not Found`: target not found in accessible scope
-- `409 Conflict`: state/version/lock conflict
-- `422 Unprocessable Entity`: business validation failure
+- `400 Bad Request`: invalid input / missing required runtime data
+- `401 Unauthorized`: missing auth headers
+- `403 Forbidden`: role not allowed
+- `404 Not Found`: target resource not found
+- `409 Conflict`: state transition conflict / lock-state mismatch
+- `422 Unprocessable Entity`: enum/pair validation failure
 
 ---
 
-## 3. Error Code Catalog
+## 3. Error Code Catalog (Current)
 
 ## 3.1 400 Bad Request
 
-- `INVALID_REQUEST_FORMAT`
-  - JSON/body shape invalid
-- `MISSING_REQUIRED_FIELD`
-  - required field missing
-- `INVALID_REASON_CODE`
-  - reason code not in allowed set
-- `INVALID_DATE_FORMAT`
-  - date/datetime format invalid
+- `ORDER_WEIGHT_REQUIRED`
+- `NO_INVOICEABLE_ITEMS`
+- `CATCH_WEIGHT_REQUIRED`
+- `UNIT_PRICE_UOM_COUNT_REQUIRED`
+- `UNIT_PRICE_UOM_KG_REQUIRED`
+- `NEGATIVE_INVOICE_TOTAL`
+- `ALLOCATION_INVALID`
+- `ALLOCATION_INVALID_TARGET_QTY`
+- `SPLIT_QTY_MISMATCH`
+- `SPLIT_GROUP_MISSING_PARENT`
+- `SPLIT_GROUP_MIN_CHILDREN`
+- `SPLIT_GROUP_QTY_MISMATCH`
+- `SPLIT_GROUP_UOM_MISMATCH`
 
 ## 3.2 401 Unauthorized
 
 - `AUTH_REQUIRED`
-- `AUTH_INVALID_TOKEN`
-- `AUTH_EXPIRED_TOKEN`
 
 ## 3.3 403 Forbidden
 
-- `PERMISSION_DENIED`
-  - role not allowed for endpoint
-- `SCOPE_FORBIDDEN`
-  - resource out of actor scope (e.g. supplier tries non-assigned line)
-- `LOCKED_PERIOD_FORBIDDEN`
-  - invoice is locked (after lock date) and actor not admin-unlocked
+- `FORBIDDEN`
 
 ## 3.4 404 Not Found
 
-- `RESOURCE_NOT_FOUND`
 - `ORDER_NOT_FOUND`
 - `INVOICE_NOT_FOUND`
 - `ALLOCATION_NOT_FOUND`
 
 ## 3.5 409 Conflict
 
-- `VERSION_CONFLICT`
-  - optimistic lock mismatch
-- `STATUS_TRANSITION_CONFLICT`
-  - invalid transition for current status
+- `ORDER_STATUS_MISMATCH`
 - `STATUS_NO_TARGET_LINES`
-  - no eligible lines found for the requested transition
-- `INVOICE_LOCKED`
-  - update attempted after lock date
-- `DUPLICATE_INVOICE_NO`
-  - unique conflict on invoice_no
-- `REGENERATION_IN_PROGRESS`
-  - procurement regeneration already running on same order
+- `INVOICE_NOT_DRAFT`
+- `INVOICE_NOT_FINALIZED`
+- `INVOICE_NOT_LOCKED_FINALIZED`
 
 ## 3.6 422 Unprocessable Entity
 
-- `VALIDATION_FAILED`
-  - generic field/business validation failure
-- `INVALID_BILLABLE_QTY`
-  - billable qty <= 0 or exceeds uninvoiced remainder
-- `MISSING_ACTUAL_WEIGHT`
-  - catch-weight invoice line missing `actual_weight_kg`
-- `MISSING_REQUIRED_UNIT_PRICE`
-  - required pricing absent
-- `INVOICEABLE_FLAG_FALSE_INCLUDED`
-  - selected lines include `invoiceable_flag=false`
-- `RESULT_STATUS_NOT_FILLED_INCLUDED`
-  - selected lines include `result_status=not_filled`
-- `TAX_MISMATCH`
-  - tax not equal to `floor(total_amount_pretax × tax_rate)`
-- `TOTAL_MISMATCH`
-  - total mismatch with subtotal + tax
-- `NEGATIVE_AMOUNT_NOT_ALLOWED`
-  - negative monetary value detected
-- `UNLOCK_REASON_REQUIRED`
-  - unlock endpoint called without required reason_code
-- `SHORTAGE_NOTE_REQUIRED`
-  - `shortage_reason_code=manual_adjustment` without shortage_note
+- `INVALID_TRANSITION_PAIR`
+- `INVALID_RESET_REASON_CODE`
+- `INVALID_UNLOCK_REASON_CODE`
 
 ---
 
 ## 4. Endpoint-specific Mapping (MVP Priority)
 
-## Invoice finalize (`POST /api/invoices/{id}/finalize`)
-- `400 MISSING_REQUIRED_FIELD` (request controls missing)
-- `403 PERMISSION_DENIED`
-- `404 INVOICE_NOT_FOUND`
-- `409 VERSION_CONFLICT`
-- `409 INVOICE_LOCKED`
-- `422 INVALID_BILLABLE_QTY`
-- `422 MISSING_ACTUAL_WEIGHT`
-- `422 MISSING_REQUIRED_UNIT_PRICE`
-- `422 INVOICEABLE_FLAG_FALSE_INCLUDED`
-- `422 RESULT_STATUS_NOT_FILLED_INCLUDED`
-- `422 TAX_MISMATCH`
-- `422 TOTAL_MISMATCH`
-- `422 NEGATIVE_AMOUNT_NOT_ALLOWED`
-
-## Invoice reset-to-draft (`POST /api/invoices/{id}/reset-to-draft`)
-- `403 PERMISSION_DENIED` (Admin only)
-- `404 INVOICE_NOT_FOUND`
-- `409 VERSION_CONFLICT`
-- `409 STATUS_TRANSITION_CONFLICT` (not finalized)
-- `422 UNLOCK_REASON_REQUIRED` (if reason missing)
-- `400 INVALID_REASON_CODE` (reason out of set)
-
-## Invoice unlock (`POST /api/invoices/{id}/unlock`)
-- `403 PERMISSION_DENIED` (Admin only)
-- `404 INVOICE_NOT_FOUND`
-- `409 VERSION_CONFLICT`
-- `409 STATUS_TRANSITION_CONFLICT` (invoice not finalized / not locked)
-- `422 UNLOCK_REASON_REQUIRED`
-- `400 INVALID_REASON_CODE`
-
-## Allocation override / split
-- `403 PERMISSION_DENIED`
-- `404 ALLOCATION_NOT_FOUND`
-- `409 VERSION_CONFLICT`
-- `422 VALIDATION_FAILED` (sum mismatch/UOM mismatch/etc)
-
-## Procurement regeneration
-- `403 PERMISSION_DENIED`
+## Order bulk transition (`POST /api/v1/orders/{order_id}/bulk-transition`)
+- `403 FORBIDDEN`
 - `404 ORDER_NOT_FOUND`
-- `409 REGENERATION_IN_PROGRESS`
-- `409 VERSION_CONFLICT`
-
-## Order bulk transition (user-triggered)
-- `403 PERMISSION_DENIED`
-- `404 ORDER_NOT_FOUND`
-- `409 STATUS_TRANSITION_CONFLICT`
+- `409 ORDER_STATUS_MISMATCH`
 - `409 STATUS_NO_TARGET_LINES`
+- `422 INVALID_TRANSITION_PAIR`
+
+## Invoice finalize (`POST /api/v1/invoices/{invoice_id}/finalize`)
+- `403 FORBIDDEN`
+- `404 INVOICE_NOT_FOUND`
+- `400 NEGATIVE_INVOICE_TOTAL`
+- `409 INVOICE_NOT_DRAFT`
+
+## Invoice reset-to-draft (`POST /api/v1/invoices/{invoice_id}/reset-to-draft`)
+- `403 FORBIDDEN` (admin / order_entry)
+- `404 INVOICE_NOT_FOUND`
+- `409 INVOICE_NOT_FINALIZED`
+- `422 INVALID_RESET_REASON_CODE`
+
+## Invoice unlock (`POST /api/v1/invoices/{invoice_id}/unlock`)
+- `403 FORBIDDEN` (admin only)
+- `404 INVOICE_NOT_FOUND`
+- `409 INVOICE_NOT_LOCKED_FINALIZED`
+- `422 INVALID_UNLOCK_REASON_CODE`
+
+## Allocation override (`PATCH /api/v1/allocations/{allocation_id}/override`)
+- `403 FORBIDDEN`
+- `404 ALLOCATION_NOT_FOUND`
+
+## Allocation split (`POST /api/v1/allocations/{allocation_id}/split-line`)
+- `403 FORBIDDEN`
+- `404 ALLOCATION_NOT_FOUND`
+- `400 SPLIT_QTY_MISMATCH`
+- `400 ALLOCATION_INVALID_TARGET_QTY`
 
 ---
 
-## 5. Message Style Guide
+## 5. Notes
 
-- `message` should be user-actionable and short.
-- Never expose internal SQL/stack traces to clients.
-- Use `trace_id` for backend troubleshooting.
-
-Example messages:
-- `VERSION_CONFLICT`: "他ユーザー更新あり。最新を再読込して再実行してください。"
-- `INVOICE_LOCKED`: "この請求書はロック期間を過ぎているため更新できません。"
-- `DUPLICATE_INVOICE_NO`: "請求書番号が重複しました。再試行してください。"
-
----
-
-## 6. Test Checklist (for UAT/QA)
-
-- Concurrent update returns `409 VERSION_CONFLICT`
-- Duplicate invoice_no attempt returns `409 DUPLICATE_INVOICE_NO`
-- Locked invoice update returns `409 INVOICE_LOCKED`
-- Missing catch-weight actual weight returns `422 MISSING_ACTUAL_WEIGHT`
-- Tax mismatch returns `422 TAX_MISMATCH`
-- Unauthorized role returns `403 PERMISSION_DENIED`
+- This draft reflects **current runtime implementation** (`code/message` payload).
+- If we later add richer metadata (`field`, `resource`, `detail`, `trace_id`), update this doc and OpenAPI components together.
