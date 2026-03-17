@@ -308,3 +308,7 @@
 - `status-transition-draft.md` の内容を I/O仕様・UATへ同期。
 - エラーコードに `STATUS_NO_TARGET_LINES` を追加。
 - OpenAPI skeletonへ user-triggered order bulk transition API注記を追加（同日複数回可）。
+
+### AA. Cancel/Reset境界の追加確定（Discord #proj-order-system-requirements-3, 2026-03-17 16:42〜）
+- Cancel時は `line_status` と `invoice_line_status` を同時更新する。
+- Reset対象は `invoice.status=finalized` のみ。

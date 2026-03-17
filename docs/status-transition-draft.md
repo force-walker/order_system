@@ -91,6 +91,8 @@ Exception flow:
   - cancel reason code
   - actor + timestamp
   - audit log (`before/after`, reason)
+- Cancel execution rule:
+  - related `line_status` and `invoice_line_status` are updated together
 
 Suggested cancel reason codes:
 - `customer_cancelled`

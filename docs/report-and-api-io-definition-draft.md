@@ -234,6 +234,7 @@ Finalize response fields:
 Reset-to-draft endpoint (MVP):
 - `POST /api/invoices/{id}/reset-to-draft`
 - Actor: Admin only
+- Allowed only when `invoice.status=finalized`
 
 Reset request fields:
 - `reset_reason_code` (required: `data_error|pricing_error|tax_error|customer_change|policy_exception`)
@@ -241,6 +242,7 @@ Reset request fields:
 
 Reset behavior:
 - `invoice.status: finalized -> draft`
+- on cancel/reset operations, related `line_status` and `invoice_line_status` are updated together
 - affected `invoice_line_status` is uniformly reset to `uninvoiced`
 - hard-stop on non-finalized invoice / missing reason / version conflict
 - hard-stop failure does not lock record; users can fix and retry

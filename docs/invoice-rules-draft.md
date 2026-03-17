@@ -128,6 +128,7 @@ Reset-to-draft is allowed to reopen a finalized invoice for correction.
 
 On reset execution:
 - `invoice.status: finalized -> draft`
+- on cancel/reset operations, related `line_status` and `invoice_line_status` are updated together
 - `invoice_line_status` for affected lines is reset to `uninvoiced` (uniform policy)
 - invoice items are retained (not deleted), recalculation required before re-finalize
 
