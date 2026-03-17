@@ -101,3 +101,7 @@ This package is draft-level functional specification for MVP planning and implem
 20. `docs/terminology-unification-targets.md`
    - 表記統一作業の対象ドキュメント（Must/Should）と進捗管理
    - status語彙のcanonical定義と適用状況
+
+21. `docs/implementation-bootstrap-plan.md`
+   - 推奨スタック前提の実装立ち上げ計画
+   - フォルダ構成、初期タスク、Done条件、リスク

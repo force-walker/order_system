@@ -321,3 +321,10 @@
 - TTLは無期限（auto-expiryなし）。
 - 自動再lockは行わず、re-finalizeで再確定する。
 - エラーコード: `PERMISSION_DENIED / INVOICE_NOT_FOUND / VERSION_CONFLICT / STATUS_TRANSITION_CONFLICT / UNLOCK_REASON_REQUIRED / INVALID_REASON_CODE`。
+
+### AC. UAT実行テンプレ/実装雛形の整備（Discord #proj-order-system-requirements-3, 2026-03-17 20:48〜）
+- `uat-acceptance-checklist-draft.md` を数値入り実行テンプレへ更新。
+  - 同時ユーザー10、orders 10,000、order_lines 100,000、invoices 30,000
+  - API P95 1.5s、グリッドP95 2.0s、allocation 5,000 lines/5分
+- `implementation-bootstrap-plan.md` を新規作成。
+  - 推奨スタック前提のフォルダ構成、初期タスク、Done条件を定義。
