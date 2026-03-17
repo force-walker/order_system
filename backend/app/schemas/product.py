@@ -9,7 +9,7 @@ class ProductCreate(BaseModel):
     invoice_uom: str
     is_catch_weight: bool = False
     weight_capture_required: bool = False
-    pricing_basis_default: str = 'per_order_uom'
+    pricing_basis_default: str = 'uom_count'
 
 
 class ProductResponse(BaseModel):

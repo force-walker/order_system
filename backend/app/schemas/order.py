@@ -20,10 +20,10 @@ class OrderItemCreate(BaseModel):
 
     @model_validator(mode='after')
     def validate_price_basis(self):
-        if self.pricing_basis == PricingBasis.per_order_uom and self.unit_price_order_uom is None:
-            raise ValueError('unit_price_order_uom is required when pricing_basis=per_order_uom')
-        if self.pricing_basis == PricingBasis.per_kg and self.unit_price_per_kg is None:
-            raise ValueError('unit_price_per_kg is required when pricing_basis=per_kg')
+        if self.pricing_basis == PricingBasis.uom_count and self.unit_price_order_uom is None:
+            raise ValueError('unit_price_order_uom is required when pricing_basis=uom_count')
+        if self.pricing_basis == PricingBasis.uom_kg and self.unit_price_per_kg is None:
+            raise ValueError('unit_price_per_kg is required when pricing_basis=uom_kg')
         return self
 
 

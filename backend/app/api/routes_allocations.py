@@ -43,9 +43,9 @@ def run_auto_allocation(
         alloc.suggested_supplier_id = default_supplier_id
         alloc.final_supplier_id = alloc.final_supplier_id or default_supplier_id
         alloc.suggested_qty = item.ordered_qty
-        alloc.suggested_uom = item.ordered_uom
+        alloc.suggested_uom = item.order_uom_type.value
         alloc.final_qty = alloc.final_qty or item.ordered_qty
-        alloc.final_uom = alloc.final_uom or item.ordered_uom
+        alloc.final_uom = alloc.final_uom or item.order_uom_type.value
         item.line_status = LineStatus.allocated
         processed += 1
 

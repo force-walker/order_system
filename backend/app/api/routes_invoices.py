@@ -30,6 +30,7 @@ def create_invoice(
         invoice_no=payload.invoice_no,
         customer_id=order.customer_id,
         invoice_date=payload.invoice_date,
+        delivery_date=order.delivery_date,
         due_date=payload.due_date,
         subtotal=Decimal('0'),
         tax_total=Decimal('0'),
@@ -45,23 +46,23 @@ def create_invoice(
     total_sum = Decimal('0')
 
     for item in items:
-        if item.pricing_basis == PricingBasis.per_kg:
+        if item.pricing_basis == PricingBasis.uom_kg:
             if item.actual_weight_kg is None:
                 raise HTTPException(status_code=400, detail=f'catch-weight line missing actual_weight_kg: order_item={item.id}')
-            if item.unit_price_per_kg is None:
-                raise HTTPException(status_code=400, detail=f'missing unit_price_per_kg: order_item={item.id}')
-            base = Decimal(item.actual_weight_kg) * Decimal(item.unit_price_per_kg)
-            unit_price = Decimal(item.unit_price_per_kg)
+            if item.unit_price_uom_kg is None:
+                raise HTTPException(status_code=400, detail=f'missing unit_price_uom_kg: order_item={item.id}')
+            base = Decimal(item.actual_weight_kg) * Decimal(item.unit_price_uom_kg)
+            unit_price = Decimal(item.unit_price_uom_kg)
             qty_display = Decimal(item.actual_weight_kg)
             uom_display = 'kg'
             description = f'CatchWeight Item #{item.product_id}'
         else:
-            if item.unit_price_order_uom is None:
-                raise HTTPException(status_code=400, detail=f'missing unit_price_order_uom: order_item={item.id}')
-            base = Decimal(item.ordered_qty) * Decimal(item.unit_price_order_uom)
-            unit_price = Decimal(item.unit_price_order_uom)
+            if item.unit_price_uom_count is None:
+                raise HTTPException(status_code=400, detail=f'missing unit_price_uom_count: order_item={item.id}')
+            base = Decimal(item.ordered_qty) * Decimal(item.unit_price_uom_count)
+            unit_price = Decimal(item.unit_price_uom_count)
             qty_display = Decimal(item.ordered_qty)
-            uom_display = item.ordered_uom
+            uom_display = item.order_uom_type.value
             description = f'Item #{item.product_id}'
 
         line_subtotal, line_tax, line_total = calc_line(base, Decimal(item.discount_amount or 0), item.tax_code)
@@ -74,8 +75,8 @@ def create_invoice(
                 qty_display=qty_display,
                 uom_display=uom_display,
                 weight_kg=item.actual_weight_kg,
-                unit_price=unit_price,
-                amount=line_subtotal,
+                sales_unit_price=unit_price,
+                line_amount=line_subtotal,
                 tax_code=item.tax_code,
                 tax_amount=line_tax,
             )

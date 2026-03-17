@@ -22,6 +22,7 @@ def create_order(
         order_no=payload.order_no,
         customer_id=payload.customer_id,
         order_datetime=payload.order_datetime,
+        delivery_date=payload.order_datetime.date(),
         delivery_type=payload.delivery_type,
         delivery_address_snapshot=payload.delivery_address_snapshot,
         payment_method=payload.payment_method,
@@ -34,7 +35,7 @@ def create_order(
     db.flush()
 
     for item in payload.items:
-        if item.pricing_basis == PricingBasis.per_order_uom:
+        if item.pricing_basis == PricingBasis.uom_count:
             subtotal_base = Decimal(item.ordered_qty) * Decimal(item.unit_price_order_uom or 0)
         else:
             weight = item.actual_weight_kg or item.estimated_weight_kg
@@ -53,12 +54,12 @@ def create_order(
                 order_id=order.id,
                 product_id=item.product_id,
                 ordered_qty=item.ordered_qty,
-                ordered_uom=item.ordered_uom,
+                order_uom_type=PricingBasis.uom_count,
                 estimated_weight_kg=item.estimated_weight_kg,
                 actual_weight_kg=item.actual_weight_kg,
                 pricing_basis=item.pricing_basis,
-                unit_price_order_uom=item.unit_price_order_uom,
-                unit_price_per_kg=item.unit_price_per_kg,
+                unit_price_uom_count=item.unit_price_order_uom,
+                unit_price_uom_kg=item.unit_price_per_kg,
                 discount_amount=item.discount_amount,
                 tax_code=item.tax_code,
                 line_subtotal=line_subtotal,
