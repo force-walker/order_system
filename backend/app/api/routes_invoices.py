@@ -1,10 +1,11 @@
 from datetime import datetime
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.auth import AuthContext, require_roles
+from app.core.errors import api_error
 from app.db.session import get_db
 from app.models.entities import AuditAction, AuditLog, Invoice, InvoiceItem, InvoiceLineStatus, InvoiceStatus, Order, OrderItem, PricingBasis
 from app.schemas.invoice import (
@@ -29,11 +30,11 @@ def create_invoice(
 ) -> InvoiceCreateResponse:
     order = db.query(Order).filter(Order.id == payload.order_id).one_or_none()
     if order is None:
-        raise HTTPException(status_code=404, detail='order not found')
+        api_error(404, 'ORDER_NOT_FOUND', 'order not found')
 
     items = db.query(OrderItem).filter(OrderItem.order_id == order.id, OrderItem.line_status != 'cancelled').all()
     if not items:
-        raise HTTPException(status_code=400, detail='no invoiceable items')
+        api_error(400, 'NO_INVOICEABLE_ITEMS', 'no invoiceable items')
 
     invoice = Invoice(
         invoice_no=payload.invoice_no,
@@ -57,9 +58,9 @@ def create_invoice(
     for item in items:
         if item.pricing_basis == PricingBasis.uom_kg:
             if item.actual_weight_kg is None:
-                raise HTTPException(status_code=400, detail=f'catch-weight line missing actual_weight_kg: order_item={item.id}')
+                api_error(400, 'CATCH_WEIGHT_REQUIRED', f'catch-weight line missing actual_weight_kg: order_item={item.id}')
             if item.unit_price_uom_kg is None:
-                raise HTTPException(status_code=400, detail=f'missing unit_price_uom_kg: order_item={item.id}')
+                api_error(400, 'UNIT_PRICE_UOM_KG_REQUIRED', f'missing unit_price_uom_kg: order_item={item.id}')
             base = Decimal(item.actual_weight_kg) * Decimal(item.unit_price_uom_kg)
             unit_price = Decimal(item.unit_price_uom_kg)
             qty_display = Decimal(item.actual_weight_kg)
@@ -67,7 +68,7 @@ def create_invoice(
             description = f'CatchWeight Item #{item.product_id}'
         else:
             if item.unit_price_uom_count is None:
-                raise HTTPException(status_code=400, detail=f'missing unit_price_uom_count: order_item={item.id}')
+                api_error(400, 'UNIT_PRICE_UOM_COUNT_REQUIRED', f'missing unit_price_uom_count: order_item={item.id}')
             base = Decimal(item.ordered_qty) * Decimal(item.unit_price_uom_count)
             unit_price = Decimal(item.unit_price_uom_count)
             qty_display = Decimal(item.ordered_qty)
@@ -119,13 +120,13 @@ def finalize_invoice(
 ) -> InvoiceFinalizeResponse:
     invoice = db.query(Invoice).filter(Invoice.id == invoice_id).one_or_none()
     if invoice is None:
-        raise HTTPException(status_code=404, detail='invoice not found')
+        api_error(404, 'INVOICE_NOT_FOUND', 'invoice not found')
 
     if invoice.grand_total < 0:
-        raise HTTPException(status_code=400, detail='negative invoice total')
+        api_error(400, 'NEGATIVE_INVOICE_TOTAL', 'negative invoice total')
 
     if invoice.status != InvoiceStatus.draft:
-        raise HTTPException(status_code=409, detail='invoice is not draft')
+        api_error(409, 'INVOICE_NOT_DRAFT', 'invoice is not draft')
 
     invoice.status = InvoiceStatus.finalized
     invoice.is_locked = True
@@ -143,13 +144,13 @@ def reset_invoice_to_draft(
 ) -> InvoiceResetResponse:
     allowed_codes = {'data_error', 'pricing_error', 'tax_error', 'customer_change', 'policy_exception'}
     if payload.reset_reason_code not in allowed_codes:
-        raise HTTPException(status_code=422, detail='invalid reset_reason_code')
+        api_error(422, 'INVALID_RESET_REASON_CODE', 'invalid reset_reason_code')
 
     invoice = db.query(Invoice).filter(Invoice.id == invoice_id).one_or_none()
     if invoice is None:
-        raise HTTPException(status_code=404, detail='invoice not found')
+        api_error(404, 'INVOICE_NOT_FOUND', 'invoice not found')
     if invoice.status != InvoiceStatus.finalized:
-        raise HTTPException(status_code=409, detail='only finalized invoice can reset to draft')
+        api_error(409, 'INVOICE_NOT_FINALIZED', 'only finalized invoice can reset to draft')
 
     invoice.status = InvoiceStatus.draft
     invoice.is_locked = False
@@ -191,13 +192,13 @@ def unlock_invoice(
         'other',
     }
     if payload.unlock_reason_code not in allowed_codes:
-        raise HTTPException(status_code=422, detail='invalid unlock_reason_code')
+        api_error(422, 'INVALID_UNLOCK_REASON_CODE', 'invalid unlock_reason_code')
 
     invoice = db.query(Invoice).filter(Invoice.id == invoice_id).one_or_none()
     if invoice is None:
-        raise HTTPException(status_code=404, detail='invoice not found')
+        api_error(404, 'INVOICE_NOT_FOUND', 'invoice not found')
     if invoice.status != InvoiceStatus.finalized or not invoice.is_locked:
-        raise HTTPException(status_code=409, detail='target must be finalized and locked')
+        api_error(409, 'INVOICE_NOT_LOCKED_FINALIZED', 'target must be finalized and locked')
 
     invoice.is_locked = False
 

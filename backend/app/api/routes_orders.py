@@ -1,9 +1,10 @@
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.auth import AuthContext, require_roles
+from app.core.errors import api_error
 from app.db.session import get_db
 from app.models.entities import LineStatus, Order, OrderItem, OrderStatus, PricingBasis
 from app.schemas.order import OrderCreate, OrderCreateResponse
@@ -41,7 +42,7 @@ def create_order(
         else:
             weight = item.actual_weight_kg or item.estimated_weight_kg
             if weight is None:
-                raise HTTPException(status_code=400, detail='per_kg item requires estimated_weight_kg or actual_weight_kg')
+                api_error(400, 'ORDER_WEIGHT_REQUIRED', 'per_kg item requires estimated_weight_kg or actual_weight_kg')
             subtotal_base = Decimal(weight) * Decimal(item.unit_price_per_kg or 0)
 
         line_subtotal, line_tax, line_total = calc_line(
@@ -90,14 +91,14 @@ def bulk_transition_order(
 ) -> OrderBulkTransitionResponse:
     order = db.query(Order).filter(Order.id == order_id).one_or_none()
     if order is None:
-        raise HTTPException(status_code=404, detail='order not found')
+        api_error(404, 'ORDER_NOT_FOUND', 'order not found')
 
     key = (payload.from_status, payload.to_status)
     if key not in _TRANSITION_RULES:
-        raise HTTPException(status_code=422, detail='invalid transition pair')
+        api_error(422, 'INVALID_TRANSITION_PAIR', 'invalid transition pair')
 
     if order.status != payload.from_status:
-        raise HTTPException(status_code=409, detail='order status mismatch')
+        api_error(409, 'ORDER_STATUS_MISMATCH', 'order status mismatch')
 
     from_line, to_line = _TRANSITION_RULES[key]
     target_lines = (
@@ -107,7 +108,7 @@ def bulk_transition_order(
     )
 
     if not target_lines:
-        raise HTTPException(status_code=409, detail={'code': 'STATUS_NO_TARGET_LINES', 'message': 'no eligible lines'})
+        api_error(409, 'STATUS_NO_TARGET_LINES', 'no eligible lines')
 
     for line in target_lines:
         line.line_status = to_line

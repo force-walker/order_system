@@ -2,10 +2,11 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.auth import AuthContext, require_roles
+from app.core.errors import api_error
 from app.db.session import get_db
 from app.models.entities import AuditAction, AuditLog, LineStatus, Order, OrderItem, SupplierAllocation
 from app.schemas.allocation import (
@@ -62,7 +63,7 @@ def override_allocation(
 ):
     alloc = db.query(SupplierAllocation).filter(SupplierAllocation.id == allocation_id).one_or_none()
     if alloc is None:
-        raise HTTPException(status_code=404, detail='allocation not found')
+        api_error(404, 'ALLOCATION_NOT_FOUND', 'allocation not found')
 
     before = {
         'final_supplier_id': alloc.final_supplier_id,
@@ -107,18 +108,15 @@ def split_line(
 ) -> AllocationSplitLineResponse:
     alloc = db.query(SupplierAllocation).filter(SupplierAllocation.id == allocation_id).one_or_none()
     if alloc is None:
-        raise HTTPException(status_code=404, detail='allocation not found')
+        api_error(404, 'ALLOCATION_NOT_FOUND', 'allocation not found')
 
     target_qty = Decimal(alloc.final_qty or alloc.suggested_qty or 0)
     if target_qty <= 0:
-        raise HTTPException(status_code=400, detail='allocation has invalid target qty')
+        api_error(400, 'ALLOCATION_INVALID_TARGET_QTY', 'allocation has invalid target qty')
 
     sum_parts = sum((Decimal(p.final_qty) for p in payload.parts), Decimal('0'))
     if sum_parts != target_qty:
-        raise HTTPException(
-            status_code=400,
-            detail=f'split qty mismatch: expected={target_qty} actual={sum_parts}',
-        )
+        api_error(400, 'SPLIT_QTY_MISMATCH', f'split qty mismatch: expected={target_qty} actual={sum_parts}')
 
     split_group_id = f"SPLIT-{uuid4().hex[:12]}"
     child_ids: list[int] = []
@@ -188,7 +186,7 @@ def confirm_allocations(
     allocations = q.all()
     for alloc in allocations:
         if not alloc.final_supplier_id or not alloc.final_qty or alloc.final_qty <= 0:
-            raise HTTPException(status_code=400, detail=f'invalid allocation: {alloc.id}')
+            api_error(400, 'ALLOCATION_INVALID', f'invalid allocation: {alloc.id}')
 
     split_group_ids = {a.split_group_id for a in allocations if a.split_group_id}
     for group_id in split_group_ids:
@@ -197,20 +195,17 @@ def confirm_allocations(
         children = [a for a in group_allocs if a.is_split_child]
 
         if parent is None:
-            raise HTTPException(status_code=400, detail=f'split group missing parent: {group_id}')
+            api_error(400, 'SPLIT_GROUP_MISSING_PARENT', f'split group missing parent: {group_id}')
         if len(children) < 2:
-            raise HTTPException(status_code=400, detail=f'split group requires >=2 children: {group_id}')
+            api_error(400, 'SPLIT_GROUP_MIN_CHILDREN', f'split group requires >=2 children: {group_id}')
 
         parent_qty = Decimal(parent.final_qty or parent.suggested_qty or 0)
         sum_children = sum((Decimal(c.final_qty or 0) for c in children), Decimal('0'))
         if sum_children != parent_qty:
-            raise HTTPException(
-                status_code=400,
-                detail=f'split group qty mismatch: group={group_id} parent={parent_qty} children={sum_children}',
-            )
+            api_error(400, 'SPLIT_GROUP_QTY_MISMATCH', f'split group qty mismatch: group={group_id} parent={parent_qty} children={sum_children}')
 
         parent_uom = parent.final_uom or parent.suggested_uom
         if parent_uom and any((c.final_uom != parent_uom for c in children)):
-            raise HTTPException(status_code=400, detail=f'split group uom mismatch: {group_id}')
+            api_error(400, 'SPLIT_GROUP_UOM_MISMATCH', f'split group uom mismatch: {group_id}')
 
     return AllocationConfirmResponse(confirmed_count=len(allocations))
