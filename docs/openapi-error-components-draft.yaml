@@ -32,6 +32,7 @@ components:
             - ALLOCATION_NOT_FOUND
             - VERSION_CONFLICT
             - STATUS_TRANSITION_CONFLICT
+            - STATUS_NO_TARGET_LINES
             - INVOICE_LOCKED
             - DUPLICATE_INVOICE_NO
             - REGENERATION_IN_PROGRESS
@@ -87,6 +88,7 @@ components:
         - ALLOCATION_NOT_FOUND
         - VERSION_CONFLICT
         - STATUS_TRANSITION_CONFLICT
+        - STATUS_NO_TARGET_LINES
         - INVOICE_LOCKED
         - DUPLICATE_INVOICE_NO
         - REGENERATION_IN_PROGRESS
@@ -177,6 +179,10 @@ components:
                 field: invoice_no
                 detail:
                   invoice_no: INV/2026/00042
+            noTargetLines:
+              value:
+                error_code: STATUS_NO_TARGET_LINES
+                message: no eligible lines found for this transition
 
     UnprocessableEntity:
       description: Business validation error.

@@ -204,6 +204,13 @@ Invoicing unit policy:
 - Invoice line selection is explicit per run; non-selected lines remain uninvoiced.
 - Uninvoiced lines can later be invoiced when filled, or remain excluded if cancelled.
 
+Order transition execution policy (MVP):
+- Order-level status transition is executed only by explicit user-triggered bulk action.
+- Same-day repeated transition runs are allowed.
+- No automatic order-status promotion from line aggregation.
+- Bulk cancel of unfinished lines is executed only by explicit user input.
+- If no eligible lines are found at run time, return `409 STATUS_NO_TARGET_LINES`. 
+
 Finalize hard-stops:
 - no selected invoiceable lines
 - selected lines include `invoiceable_flag=false`

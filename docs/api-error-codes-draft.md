@@ -84,6 +84,8 @@ Optional fields:
   - optimistic lock mismatch
 - `STATUS_TRANSITION_CONFLICT`
   - invalid transition for current status
+- `STATUS_NO_TARGET_LINES`
+  - no eligible lines found for the requested transition
 - `INVOICE_LOCKED`
   - update attempted after lock date
 - `DUPLICATE_INVOICE_NO`
@@ -154,6 +156,12 @@ Optional fields:
 - `404 ORDER_NOT_FOUND`
 - `409 REGENERATION_IN_PROGRESS`
 - `409 VERSION_CONFLICT`
+
+## Order bulk transition (user-triggered)
+- `403 PERMISSION_DENIED`
+- `404 ORDER_NOT_FOUND`
+- `409 STATUS_TRANSITION_CONFLICT`
+- `409 STATUS_NO_TARGET_LINES`
 
 ---
 

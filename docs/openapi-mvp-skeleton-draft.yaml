@@ -159,6 +159,22 @@ components:
         reset_note: { type: string }
         version: { type: integer }
 
+    OrderBulkTransitionRequest:
+      type: object
+      required: [to_status]
+      properties:
+        to_status:
+          type: string
+          enum: [allocated, purchased, shipped, invoiced]
+        target_line_ids:
+          type: array
+          items: { type: integer }
+          description: Optional explicit line targets for line-driven transitions.
+        bulk_cancel_unfinished:
+          type: boolean
+          default: false
+          description: Executed only when user explicitly requests bulk cancel.
+
     ErrorResponse:
       $ref: ./openapi-error-components-draft.yaml#/components/schemas/ErrorResponse
 
@@ -218,6 +234,36 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+
+  /api/orders/{id}/bulk-transition:
+    post:
+      summary: User-triggered order bulk transition
+      description: |
+        Order-level transition runs only on explicit user action.
+        Multiple runs on the same business day are allowed.
+      tags: [orders]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderBulkTransitionRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IdResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
   /api/allocations/run-auto:
     post:

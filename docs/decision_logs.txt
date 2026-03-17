@@ -303,3 +303,8 @@
 ### Y. 同日複数回遷移・Line所属方針（Discord #proj-order-system-requirements-3, 2026-03-17 12:41〜）
 - ステータス遷移のユーザー一括入力は、同一営業日に複数回実行されることを許容する。
 - 各lineは、明示的にcancelされるまでは元のorderに所属し続ける。
+
+### Z. 遷移要件クローズ前の最終同期（Discord #proj-order-system-requirements-3, 2026-03-17 12:44〜）
+- `status-transition-draft.md` の内容を I/O仕様・UATへ同期。
+- エラーコードに `STATUS_NO_TARGET_LINES` を追加。
+- OpenAPI skeletonへ user-triggered order bulk transition API注記を追加（同日複数回可）。
