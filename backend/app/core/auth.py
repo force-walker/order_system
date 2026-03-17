@@ -1,10 +1,18 @@
 from dataclasses import dataclass
-from typing import Iterable
+from datetime import UTC, datetime, timedelta
+import uuid
 
-from fastapi import Depends, Header, HTTPException, status
+import jwt
+from fastapi import Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from app.core.config import settings
+from app.core.errors import api_error
 
 
 ALLOWED_ROLES = {'admin', 'order_entry', 'buyer', 'supplier', 'customer'}
+bearer = HTTPBearer(auto_error=False)
+REVOKED_REFRESH_JTI: set[str] = set()
 
 
 @dataclass
@@ -15,20 +23,78 @@ class AuthContext:
     customer_id: int | None = None
 
 
+def _encode(payload: dict) -> str:
+    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def _decode(token: str) -> dict:
+    try:
+        return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+    except jwt.ExpiredSignatureError:
+        api_error(401, 'AUTH_REQUIRED', 'token expired')
+    except jwt.InvalidTokenError:
+        api_error(401, 'AUTH_REQUIRED', 'invalid token')
+
+
+def issue_tokens(user_id: str, role: str) -> tuple[str, str, int]:
+    now = datetime.now(UTC)
+    access_exp = now + timedelta(seconds=settings.jwt_access_ttl_seconds)
+    refresh_exp = now + timedelta(seconds=settings.jwt_refresh_ttl_seconds)
+    access = _encode(
+        {
+            'sub': user_id,
+            'role': role,
+            'type': 'access',
+            'exp': int(access_exp.timestamp()),
+            'iat': int(now.timestamp()),
+            'jti': uuid.uuid4().hex,
+        }
+    )
+    refresh = _encode(
+        {
+            'sub': user_id,
+            'role': role,
+            'type': 'refresh',
+            'exp': int(refresh_exp.timestamp()),
+            'iat': int(now.timestamp()),
+            'jti': uuid.uuid4().hex,
+        }
+    )
+    return access, refresh, settings.jwt_access_ttl_seconds
+
+
+def parse_refresh_token(refresh_token: str) -> dict:
+    payload = _decode(refresh_token)
+    if payload.get('type') != 'refresh':
+        api_error(401, 'AUTH_REQUIRED', 'invalid refresh token type')
+    jti = payload.get('jti')
+    if jti in REVOKED_REFRESH_JTI:
+        api_error(401, 'AUTH_REQUIRED', 'refresh token revoked')
+    return payload
+
+
+def revoke_refresh_token(refresh_token: str) -> None:
+    payload = _decode(refresh_token)
+    if payload.get('type') == 'refresh' and payload.get('jti'):
+        REVOKED_REFRESH_JTI.add(payload['jti'])
+
+
 def get_auth_context(
-    x_user_id: str | None = Header(default=None),
-    x_role: str | None = Header(default=None),
-    x_supplier_id: int | None = Header(default=None),
-    x_customer_id: int | None = Header(default=None),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
 ) -> AuthContext:
-    if not x_user_id or not x_role:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='missing auth headers')
+    if not credentials or credentials.scheme.lower() != 'bearer':
+        api_error(401, 'AUTH_REQUIRED', 'missing bearer token')
 
-    role = x_role.strip().lower()
-    if role not in ALLOWED_ROLES:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='invalid role')
+    payload = _decode(credentials.credentials)
+    if payload.get('type') != 'access':
+        api_error(401, 'AUTH_REQUIRED', 'invalid token type')
 
-    return AuthContext(user_id=x_user_id, role=role, supplier_id=x_supplier_id, customer_id=x_customer_id)
+    role = str(payload.get('role', '')).strip().lower()
+    user_id = payload.get('sub')
+    if not user_id or role not in ALLOWED_ROLES:
+        api_error(403, 'FORBIDDEN', 'forbidden')
+
+    return AuthContext(user_id=user_id, role=role)
 
 
 def require_roles(*roles: str):
@@ -36,7 +102,7 @@ def require_roles(*roles: str):
 
     def _dep(ctx: AuthContext = Depends(get_auth_context)) -> AuthContext:
         if ctx.role not in allowed:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='forbidden')
+            api_error(403, 'FORBIDDEN', 'forbidden')
         return ctx
 
     return _dep
@@ -44,9 +110,9 @@ def require_roles(*roles: str):
 
 def require_supplier_scope(target_supplier_id: int, ctx: AuthContext) -> None:
     if ctx.role == 'supplier' and ctx.supplier_id != target_supplier_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='supplier out of scope')
+        api_error(403, 'FORBIDDEN', 'supplier out of scope')
 
 
 def require_customer_scope(target_customer_id: int, ctx: AuthContext) -> None:
     if ctx.role == 'customer' and ctx.customer_id != target_customer_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='customer out of scope')
+        api_error(403, 'FORBIDDEN', 'customer out of scope')
