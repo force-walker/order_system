@@ -17,7 +17,7 @@ Fix priority and approval authority for day-to-day exception decisions.
 | 4 | Urgent delivery | Allow override/split for deadline protection | `urgent_delivery` override | 発注責任者 |
 | 5 | Price exception | Threshold-based approval | <=5% buyer, >5% admin | Admin (threshold exceed) |
 | 6 | Split-line operations | Child totals/UOM must match parent | Block if mismatch | 発注責任者 |
-| 7 | Catch-weight invoice gate | `actual_weight_kg` required for per_kg lines | Hard-stop without weight | System hard-stop |
+| 7 | Catch-weight invoice gate | `actual_weight_kg` required for `uom_kg` lines | Hard-stop without weight | System hard-stop |
 | 8 | Cancellation | `invoiced` cancel blocked (MVP) | Cancel with reason where allowed | Admin |
 
 ---

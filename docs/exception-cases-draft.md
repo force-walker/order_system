@@ -46,7 +46,7 @@ Define operational exception patterns so users can act consistently and system b
 - Audit: mandatory
 
 ## E4. Catch-weight missing actual weight
-- Situation: per_kg line has no `actual_weight_kg` at invoice timing.
+- Situation: `uom_kg` line has no `actual_weight_kg` at invoice timing.
 - Required action:
   - block invoice finalization
   - route back to purchase result registration

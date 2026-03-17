@@ -20,7 +20,7 @@ Updated: 2026-03-10
 - [ ] 保存後、order/itemがDBで整合している
 
 ### UAT-O2: catch-weight商品登録
-- [ ] `pricing_basis=per_kg` 時、価格/重量条件が検証される
+- [ ] `pricing_basis=uom_kg` 時、価格/重量条件が検証される
 - [ ] 見込み重量/実重量ロジックが仕様通り動く
 
 合格条件:
@@ -74,7 +74,7 @@ Updated: 2026-03-10
 
 ### UAT-I1: 請求作成
 - [ ] `POST /api/invoices` で請求作成できる
-- [ ] piece + per_kg 混在計算が正しい
+- [ ] `uom_count` + `uom_kg` 混在計算が正しい
 - [ ] 行税計算・値引き順序が仕様通り
 
 ### UAT-I2: 請求確定ハードストップ

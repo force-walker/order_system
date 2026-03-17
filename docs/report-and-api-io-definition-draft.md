@@ -37,6 +37,15 @@ Direction（固定語彙）:
 Entry Method（normalized 固定語彙）:
 - `manual | lookup_select | auto_default | auth_context | system_timestamp | rule_engine | calculated | n/a`
 
+用語定義（最終統一）:
+- `input`: クライアント/ユーザーが送る入力値
+- `derived`: マスタ/認証情報/既存データから導出される値
+- `generated`: サーバが新規発行する値（ID・採番・タイムスタンプ等）
+- `unit_cost`: 仕入結果の初期記録単価（暫定）
+- `final_unit_cost`: 請求前レビュー後の確定仕入単価（最終値）
+- `invoiceable_flag`: 請求対象に含めてよいかを示すフラグ
+- `result_status`: 仕入結果確定状態（`not_filled|filled|partially_filled|substituted`）
+
 ---
 
 ## 2) API I/O 定義（主要）
@@ -73,7 +82,7 @@ Request fields:
 
 Notes:
 - `pricing_basis` は `product_id` から自動決定（requestでは受け付けない）
-- `unit_price_order_uom` / `unit_price_per_kg` は受注作成時には入力不要
+- `unit_price_uom_count` / `unit_price_uom_kg` は受注作成時には入力不要
 - `actual_weight_kg` は受注作成時には入力しない（仕入結果登録時に確定）
 - tax関連項目は受注時には扱わない（請求時に適用）
 
@@ -150,8 +159,8 @@ Request fields:
 - `purchased_qty` (decimal(12,3), required)
 - `purchased_uom` (string, required)
 - `actual_weight_kg` (decimal(12,3), optional)
-- `unit_cost` (decimal(12,2), optional)
-- `final_unit_cost` (decimal(12,2), optional)
+- `unit_cost` (decimal(12,2), optional; 初期記録の暫定単価)
+- `final_unit_cost` (decimal(12,2), optional; 請求前レビュー後の確定単価)
 - `currency` (string(3), optional default JPY, purchase currency)
 - `result_status` (enum, required: `not_filled|filled|partially_filled|substituted`)
 - `shortage_qty` (decimal(12,3), derived)

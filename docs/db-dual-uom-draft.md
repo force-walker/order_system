@@ -9,7 +9,7 @@ Support operations where orders are entered in one unit (e.g., piece) while purc
 
 - **Order UOM**: Unit used by order-entry staff (`piece`, `box`, etc.)
 - **Purchase UOM**: Unit used for supplier purchase (`kg`, `case`, etc.)
-- **Invoice UOM / Basis**: Unit and logic used for billing customer (`per_kg` for catch-weight)
+- **Invoice UOM / Basis**: Unit and logic used for billing customer (`uom_kg` for catch-weight)
 - **Catch-weight item**: Item sold by actual measured weight at fulfillment time
 
 ---
@@ -75,8 +75,8 @@ Line-level unit/weight/price details.
 - `estimated_weight_kg` (numeric(12,3), nullable)
 - `actual_weight_kg` (numeric(12,3), nullable)  ※受注時は不要、仕入結果登録で確定
 - `pricing_basis` (`uom_count` | `uom_kg`)  ※`product_id`で自動決定（手入力不可）
-- `unit_price_order_uom` (numeric(12,2), nullable)
-- `unit_price_per_kg` (numeric(12,2), nullable)
+- `unit_price_uom_count` (numeric(12,2), nullable)
+- `unit_price_uom_kg` (numeric(12,2), nullable)
 - `line_subtotal` (numeric(12,2), nullable or computed)
 - `line_tax` (numeric(12,2), nullable or computed)
 - `line_total` (numeric(12,2), nullable or computed)
@@ -86,8 +86,8 @@ Line-level unit/weight/price details.
 Validation rules:
 - `ordered_qty > 0`
 - `product_id`ごとに`is_catch_weight`と`order_uom_type`は一意（混在禁止）
-- If `pricing_basis = uom_kg` then `unit_price_per_kg` required
-- If `pricing_basis = uom_count` then `unit_price_order_uom` required
+- If `pricing_basis = uom_kg` then `unit_price_uom_kg` required
+- If `pricing_basis = uom_count` then `unit_price_uom_count` required
 - tax関連項目は請求時に扱う（受注時は不要）
 
 Indexes:

@@ -274,3 +274,9 @@
 - reason code 定義の横断確認を実施。
 - `cancel_reason_code` / `reset_reason_code` / `unlock_reason_code` のセット差分なしを確認。
 - `report-and-api-io-definition-draft.md` に最終統一セットを明文化。
+
+### U. 用語・項目名統一（Phase 3）反映（Discord #proj-order-system-requirements-3, 2026-03-17 11:08〜）
+- `uom_count / uom_kg` 表記へ統一（`per_kg`, `per_order_uom` を置換）。
+- 単価項目名を `unit_price_uom_count / unit_price_uom_kg` に統一。
+- `unit_cost`（暫定）と `final_unit_cost`（確定）の責務を明文化。
+- `input / derived / generated` の定義をI/O仕様へ追記。

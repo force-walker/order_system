@@ -10,7 +10,7 @@ Support invoices that can contain both fixed-unit items and catch-weight items i
 ## Rule A: Piece-based pricing
 When `pricing_basis = uom_count`
 
-`line_subtotal = ordered_qty × unit_price_order_uom`
+`line_subtotal = ordered_qty × unit_price_uom_count`
 
 Then:
 - `line_after_discount = line_subtotal - discount_amount`
@@ -62,7 +62,7 @@ Cannot finalize invoice if any of the following is true:
 2. Selected lines include `invoiceable_flag=false`
 3. Selected lines include `result_status=not_filled`
 4. Catch-weight line missing `actual_weight_kg`
-5. Required price missing (`unit_price_uom_kg` or `unit_price_order_uom`)
+5. Required price missing (`unit_price_uom_kg` or `unit_price_uom_count`)
 6. Invalid billable qty (`billable_qty <= 0` or exceeds uninvoiced remainder)
 7. Tax mismatch (`tax_amount != floor(total_amount_pretax × tax_rate)`)
 8. Total mismatch (`total_amount != total_amount_pretax + tax_amount`)

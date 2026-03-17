@@ -14,7 +14,7 @@ flowchart LR
 
     D --> E[発注者\n仕入結果登録\n- purchase_results\n- actual_weight]
 
-    E --> F[請求計算\n- piece課金\n- per_kg課金\n- 税/端数処理]
+    E --> F[請求計算\n- uom_count課金\n- uom_kg課金\n- 税/端数処理]
 
     F --> G[販売先/顧客\n請求書受領\n- invoice\n- invoice_items]
 
@@ -34,7 +34,7 @@ flowchart LR
 - 主インプット
   - 顧客情報（販売先）
   - 商品、数量、希望納期、配送区分
-  - 価格基準（per_order_uom / per_kg）
+  - 価格基準（uom_count / uom_kg）
   - （必要なら）見込み重量
   - 運用ルール（欠品、価格、緊急、顧客要望など）
   - 注文番号はシステム自動採番（手入力しない）
