@@ -466,3 +466,43 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+  /api/invoices/{id}/unlock:
+    post:
+      summary: Unlock finalized invoice (Admin only)
+      description: |
+        Unlock target must be finalized and locked invoice.
+        Unlock reason code is mandatory. Post-unlock edits are admin-only.
+      tags: [invoices]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [unlock_reason_code]
+              properties:
+                unlock_reason_code:
+                  type: string
+                  enum: [pricing_correction, quantity_correction, tax_correction, customer_request, data_fix, other]
+                reason_note:
+                  type: string
+                  maxLength: 500
+      responses:
+        '200':
+          description: Unlock done
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }

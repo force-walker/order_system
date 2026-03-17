@@ -90,6 +90,13 @@ Updated: 2026-03-10
 - [ ] 未完lineの一括キャンセルは明示入力時のみ実行される
 - [ ] `invoiced` 以降のcancelがMVPルール通り制御される
 
+### UAT-I4: Unlock / Reset 境界
+- [ ] reset-to-draft は `invoice.status=finalized` のときのみ実行可能
+- [ ] unlock は `invoice.status=finalized` かつ lock済みinvoiceのみ実行可能
+- [ ] unlock は Adminのみ実行可能
+- [ ] `unlock_reason_code` 必須、`reason_note` は任意（500文字以内）
+- [ ] unlock 後は Admin編集可、re-finalizeで再確定できる
+
 合格条件:
 - [ ] 請求金額が業務期待値と一致し、誤請求が発生しない
 

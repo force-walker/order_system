@@ -145,6 +145,14 @@ Optional fields:
 - `422 UNLOCK_REASON_REQUIRED` (if reason missing)
 - `400 INVALID_REASON_CODE` (reason out of set)
 
+## Invoice unlock (`POST /api/invoices/{id}/unlock`)
+- `403 PERMISSION_DENIED` (Admin only)
+- `404 INVOICE_NOT_FOUND`
+- `409 VERSION_CONFLICT`
+- `409 STATUS_TRANSITION_CONFLICT` (invoice not finalized / not locked)
+- `422 UNLOCK_REASON_REQUIRED`
+- `400 INVALID_REASON_CODE`
+
 ## Allocation override / split
 - `403 PERMISSION_DENIED`
 - `404 ALLOCATION_NOT_FOUND`

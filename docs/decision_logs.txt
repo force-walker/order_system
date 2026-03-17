@@ -312,3 +312,12 @@
 ### AA. Cancel/Reset境界の追加確定（Discord #proj-order-system-requirements-3, 2026-03-17 16:42〜）
 - Cancel時は `line_status` と `invoice_line_status` を同時更新する。
 - Reset対象は `invoice.status=finalized` のみ。
+
+### AB. Unlock境界仕様の確定（Discord #proj-order-system-requirements-3, 2026-03-17 20:25〜20:35）
+- Unlock対象は `invoice.status=finalized` かつ lock済みinvoiceのみ。
+- 実行権限は Adminのみ。
+- `unlock_reason_code` は必須、`reason_note` は任意（500文字以内）。
+- Unlock後の編集範囲はMVPでAdmin全項目可。
+- TTLは無期限（auto-expiryなし）。
+- 自動再lockは行わず、re-finalizeで再確定する。
+- エラーコード: `PERMISSION_DENIED / INVOICE_NOT_FOUND / VERSION_CONFLICT / STATUS_TRANSITION_CONFLICT / UNLOCK_REASON_REQUIRED / INVALID_REASON_CODE`。

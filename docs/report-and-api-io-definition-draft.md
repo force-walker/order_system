@@ -247,6 +247,21 @@ Reset behavior:
 - hard-stop on non-finalized invoice / missing reason / version conflict
 - hard-stop failure does not lock record; users can fix and retry
 
+Unlock endpoint (MVP):
+- `POST /api/invoices/{id}/unlock`
+- Actor: Admin only
+- Allowed only when `invoice.status=finalized` and invoice is locked
+
+Unlock request fields:
+- `unlock_reason_code` (required: `pricing_correction|quantity_correction|tax_correction|customer_request|data_fix|other`)
+- `reason_note` (optional, <= 500 chars)
+
+Unlock behavior:
+- unlocks finalized invoice for admin edits
+- no auto-expiry (TTL unlimited)
+- no auto re-lock; re-finalize is used to freeze again
+- hard-stop on missing reason / invalid reason / status mismatch / version conflict
+
 ---
 
 ## 3) 帳票 I/O 定義

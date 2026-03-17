@@ -139,14 +139,18 @@ Failure rule:
 
 ---
 
-## 8. Finalized operational decisions (2026-03-16)
+## 8. Finalized operational decisions (2026-03-17)
 
-1. Unlock TTL after Admin unlock
+1. Unlock scope and permission
+- Unlock target: locked invoice with `invoice.status=finalized` only
+- Actor: Admin only
+
+2. Unlock TTL
 - Unlimited (no auto-expiry)
 
-2. Unlock reason input
+3. Unlock reason input
 - Reason code is mandatory
-- Note is optional
+- Note is optional (<= 500 chars)
 - Adopted reason codes:
   - `pricing_correction`
   - `quantity_correction`
@@ -155,7 +159,27 @@ Failure rule:
   - `data_fix`
   - `other`
 
-3. Audit log export in MVP UI
+4. Post-unlock edit scope (MVP)
+- Admin can edit all invoice fields after unlock
+
+5. Re-lock policy
+- No automatic re-lock
+- Re-finalize operation is used to re-freeze invoice state
+
+6. Unlock hard-stop conditions
+- draft invoice cannot be unlocked
+- non-finalized invoice cannot be unlocked
+- version conflict blocks unlock
+
+7. Unlock error mapping
+- `403 PERMISSION_DENIED`
+- `404 INVOICE_NOT_FOUND`
+- `409 VERSION_CONFLICT`
+- `409 STATUS_TRANSITION_CONFLICT`
+- `422 UNLOCK_REASON_REQUIRED`
+- `400 INVALID_REASON_CODE`
+
+8. Audit log export in MVP UI
 - CSV export only (no advanced UI analytics in MVP)
 - Required CSV columns:
   - `event_time`
