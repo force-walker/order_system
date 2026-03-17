@@ -1,6 +1,6 @@
 # Order System 要件定義 決定ログ（Discord #proj-order-system-requirements）
 
-更新日: 2026-03-17
+更新日: 2026-03-18
 
 ## 決定日時（主要）
 - 2026-03-15 15:28〜16:00: Invoice方針（order単位＋split請求許可、invoice_line_status）
@@ -337,3 +337,31 @@
 ### AE. 当日作業ログ追記（Discord #proj-order-system-requirements-3, 2026-03-17 20:59〜）
 - `requirements-worklog-2026-03-17.md` を新規作成。
 - 本日の要件定義工程（統一作業、境界仕様、UATテンプレ、クローズ宣言）を記録。
+
+### AF. Architecture/DB v2整合 決定反映（Discord #02-architecture, 2026-03-17）
+- システム構成を4層で確定:
+  - Frontend SPA / Backend API(`/api/v1`) / Worker(Batch) / PostgreSQL
+- 監視方式（MVP）を確定:
+  - 構造化ログ + メトリクス + アラート
+- 注文遷移はユーザー明示バルク実行（自動昇格なし）
+- ステータス定義を固定:
+  - Order: `new -> confirmed -> allocated -> purchased -> shipped -> invoiced` + `cancelled`
+  - Line: `open -> allocated -> purchased -> shipped -> invoiced` + `cancelled`
+  - `paid` はMVPスコープ外
+- Dual-UOM方針を採用:
+  - `uom_count / uom_kg`
+  - `unit_price_uom_count / unit_price_uom_kg`
+- 分割請求方針を固定:
+  - `order_items 1-N invoice_items`
+- 主要技術選定（MVP）:
+  - Backend: FastAPI + SQLAlchemy + Alembic
+  - DB: PostgreSQL
+  - Batch: 初期はアプリ内ジョブ（将来 Redis/Celery 拡張）
+  - Auth: JWT + RBAC
+  - API契約: OpenAPI 3.0
+- 非機能目標（MVP）:
+  - API P95 <= 1.5s
+  - Grid初期表示 P95 <= 2.0s
+  - Allocation 5,000行 <= 5分
+  - 可用性 99.5%（月次）
+  - RPO <= 1h / RTO <= 4h
