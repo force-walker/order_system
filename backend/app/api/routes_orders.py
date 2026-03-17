@@ -97,6 +97,9 @@ def bulk_transition_order(
     if key not in _TRANSITION_RULES:
         api_error(422, 'INVALID_TRANSITION_PAIR', 'invalid transition pair')
 
+    if order.version != payload.version:
+        api_error(409, 'VERSION_CONFLICT', 'record has been updated by another user')
+
     if order.status != payload.from_status:
         api_error(409, 'ORDER_STATUS_MISMATCH', 'order status mismatch')
 
@@ -112,8 +115,10 @@ def bulk_transition_order(
 
     for line in target_lines:
         line.line_status = to_line
+        line.version += 1
 
     order.status = payload.to_status
+    order.version += 1
     db.commit()
 
     return OrderBulkTransitionResponse(

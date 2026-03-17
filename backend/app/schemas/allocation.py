@@ -11,6 +11,7 @@ class AllocationOverrideRequest(BaseModel):
     final_supplier_id: int
     final_qty: Decimal = Field(gt=0)
     final_uom: str
+    version: int = Field(ge=1)
     override_reason_code: str
     override_note: str | None = None
     overridden_by: str
@@ -24,6 +25,7 @@ class SplitLinePart(BaseModel):
 
 class AllocationSplitLineRequest(BaseModel):
     parts: list[SplitLinePart] = Field(min_length=2)
+    version: int = Field(ge=1)
     override_reason_code: str
     override_note: str | None = None
     overridden_by: str

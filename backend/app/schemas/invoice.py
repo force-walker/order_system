@@ -30,6 +30,7 @@ class InvoiceFinalizeResponse(BaseModel):
 
 
 class InvoiceResetRequest(BaseModel):
+    version: int = Field(ge=1)
     reset_reason_code: str
     reason_note: str | None = Field(default=None, max_length=500)
 
@@ -40,6 +41,7 @@ class InvoiceResetResponse(BaseModel):
 
 
 class InvoiceUnlockRequest(BaseModel):
+    version: int = Field(ge=1)
     unlock_reason_code: str
     reason_note: str | None = Field(default=None, max_length=500)
 

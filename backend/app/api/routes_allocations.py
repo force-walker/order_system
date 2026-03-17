@@ -65,6 +65,9 @@ def override_allocation(
     if alloc is None:
         api_error(404, 'ALLOCATION_NOT_FOUND', 'allocation not found')
 
+    if alloc.version != payload.version:
+        api_error(409, 'VERSION_CONFLICT', 'record has been updated by another user')
+
     before = {
         'final_supplier_id': alloc.final_supplier_id,
         'final_qty': str(alloc.final_qty) if alloc.final_qty is not None else None,
@@ -79,6 +82,7 @@ def override_allocation(
     alloc.override_note = payload.override_note
     alloc.overridden_by = payload.overridden_by
     alloc.overridden_at = datetime.utcnow()
+    alloc.version += 1
 
     db.add(
         AuditLog(
@@ -110,6 +114,9 @@ def split_line(
     if alloc is None:
         api_error(404, 'ALLOCATION_NOT_FOUND', 'allocation not found')
 
+    if alloc.version != payload.version:
+        api_error(409, 'VERSION_CONFLICT', 'record has been updated by another user')
+
     target_qty = Decimal(alloc.final_qty or alloc.suggested_qty or 0)
     if target_qty <= 0:
         api_error(400, 'ALLOCATION_INVALID_TARGET_QTY', 'allocation has invalid target qty')
@@ -138,6 +145,7 @@ def split_line(
             split_group_id=split_group_id,
             parent_allocation_id=alloc.id,
             is_split_child=True,
+            version=1,
         )
         db.add(child)
         db.flush()
@@ -149,6 +157,7 @@ def split_line(
     alloc.overridden_by = payload.overridden_by
     alloc.overridden_at = datetime.utcnow()
     alloc.split_group_id = split_group_id
+    alloc.version += 1
 
     db.add(
         AuditLog(

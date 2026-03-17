@@ -131,6 +131,7 @@ def finalize_invoice(
     invoice.status = InvoiceStatus.finalized
     invoice.is_locked = True
     invoice.locked_at = datetime.utcnow()
+    invoice.version += 1
     db.commit()
     return InvoiceFinalizeResponse(invoice_id=invoice.id, status=invoice.status, is_locked=invoice.is_locked)
 
@@ -149,12 +150,16 @@ def reset_invoice_to_draft(
     invoice = db.query(Invoice).filter(Invoice.id == invoice_id).one_or_none()
     if invoice is None:
         api_error(404, 'INVOICE_NOT_FOUND', 'invoice not found')
+    if invoice.version != payload.version:
+        api_error(409, 'VERSION_CONFLICT', 'record has been updated by another user')
     if invoice.status != InvoiceStatus.finalized:
         api_error(409, 'INVOICE_NOT_FINALIZED', 'only finalized invoice can reset to draft')
 
     invoice.status = InvoiceStatus.draft
     invoice.is_locked = False
+    invoice.version += 1
     invoice.locked_at = None
+    invoice.version += 1
 
     db.query(InvoiceItem).filter(InvoiceItem.invoice_id == invoice.id).update(
         {InvoiceItem.invoice_line_status: InvoiceLineStatus.uninvoiced}, synchronize_session=False
@@ -197,10 +202,13 @@ def unlock_invoice(
     invoice = db.query(Invoice).filter(Invoice.id == invoice_id).one_or_none()
     if invoice is None:
         api_error(404, 'INVOICE_NOT_FOUND', 'invoice not found')
+    if invoice.version != payload.version:
+        api_error(409, 'VERSION_CONFLICT', 'record has been updated by another user')
     if invoice.status != InvoiceStatus.finalized or not invoice.is_locked:
         api_error(409, 'INVOICE_NOT_LOCKED_FINALIZED', 'target must be finalized and locked')
 
     invoice.is_locked = False
+    invoice.version += 1
 
     db.add(
         AuditLog(

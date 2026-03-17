@@ -106,6 +106,7 @@ class Order(Base):
     created_by: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    version: Mapped[int] = mapped_column(default=1)
 
 
 class OrderItem(Base):
@@ -129,6 +130,7 @@ class OrderItem(Base):
     line_status: Mapped[LineStatus] = mapped_column(Enum(LineStatus), default=LineStatus.open, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    version: Mapped[int] = mapped_column(default=1)
 
 
 class SupplierAllocation(Base):
@@ -154,6 +156,7 @@ class SupplierAllocation(Base):
     is_split_child: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    version: Mapped[int] = mapped_column(default=1)
 
 
 class PurchaseResult(Base):
@@ -195,6 +198,7 @@ class Invoice(Base):
     created_by: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    version: Mapped[int] = mapped_column(default=1)
 
 
 class InvoiceItem(Base):
@@ -219,6 +223,7 @@ class InvoiceItem(Base):
     )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    version: Mapped[int] = mapped_column(default=1)
 
 
 class AuditLog(Base):

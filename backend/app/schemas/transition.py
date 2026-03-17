@@ -6,6 +6,7 @@ from app.models.entities import OrderStatus
 class OrderBulkTransitionRequest(BaseModel):
     from_status: OrderStatus
     to_status: OrderStatus
+    version: int
 
 
 class OrderBulkTransitionResponse(BaseModel):
