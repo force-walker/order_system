@@ -1,6 +1,6 @@
 # Order System 要件定義 決定ログ（Discord #proj-order-system-requirements）
 
-更新日: 2026-03-16
+更新日: 2026-03-17
 
 ## 決定日時（主要）
 - 2026-03-15 15:28〜16:00: Invoice方針（order単位＋split請求許可、invoice_line_status）
