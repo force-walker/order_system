@@ -23,9 +23,10 @@ Exception flow:
 
 ## Global evaluation policy (MVP)
 - Line status is updated first.
-- Order header status is evaluated from line results after each transition execution.
+- Order-level status transition is executed only by explicit user-triggered bulk action.
 - `confirmed -> allocated`, `allocated -> purchased`, `shipped -> invoiced` are line-driven transitions.
 - `purchased -> shipped` is evaluated in one batch (order-level execution).
+- Automatic order-status promotion from line aggregation is not applied in MVP.
 - If zero target lines are eligible/updated, return conflict (`STATUS_NO_TARGET_LINES`).
 
 ## 1) `new → confirmed`
@@ -43,7 +44,7 @@ Exception flow:
   - `final_supplier_id` exists and `final_qty > 0`
 - Behavior:
   - only eligible lines move to `allocated`
-  - order status is recalculated after line updates
+  - order status transition is applied only when user explicitly runs order-level bulk transition
 
 ## 3) `allocated → purchased` (line-driven)
 - Actor: Buyer, Admin
@@ -53,7 +54,7 @@ Exception flow:
   - `result_status != not_filled`
 - Behavior:
   - only eligible lines move to `purchased`
-  - order status is recalculated after line updates
+  - order status transition is applied only when user explicitly runs order-level bulk transition
 
 ## 4) `purchased → shipped` (order batch)
 - Actor: Buyer, Admin
