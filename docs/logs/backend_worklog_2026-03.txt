@@ -1,0 +1,15 @@
+# backend_worklog_2026-03
+Channel: #03-backend-api
+Purpose: 時系列の作業ログ（詳細）。確定事項は docs/decision_logs.txt に転記。
+
+## 2026-03-18
+
+### 00:49 JST+8 ログ開始（OpenClawBot）
+- `docs/logs/backend_worklog_2026-03.txt` を新規作成。
+- #03-backend-api の作業履歴をこのファイルで継続記録する。
+
+---
+記法メモ:
+[YYYY-MM-DD HH:MM] actor: summary
+- detail
+- detail
