@@ -177,6 +177,7 @@ class PurchaseResult(Base):
     recorded_by: Mapped[str] = mapped_column(String(64))
     recorded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    version: Mapped[int] = mapped_column(default=1)
     note: Mapped[str | None] = mapped_column(Text)
 
 
