@@ -42,6 +42,7 @@ components:
             - SPLIT_GROUP_MIN_CHILDREN
             - SPLIT_GROUP_QTY_MISMATCH
             - SPLIT_GROUP_UOM_MISMATCH
+            - REGENERATION_IN_PROGRESS
         message:
           type: string
 

@@ -65,6 +65,7 @@ Required fields:
 - `INVOICE_NOT_DRAFT`
 - `INVOICE_NOT_FINALIZED`
 - `INVOICE_NOT_LOCKED_FINALIZED`
+- `REGENERATION_IN_PROGRESS`
 
 ### 3.6 422 Unprocessable Entity
 - `INVALID_TRANSITION_PAIR`
@@ -129,6 +130,10 @@ Required fields:
 - `POST /api/v1/purchase-results/bulk-upsert`
   - `404 ALLOCATION_NOT_FOUND`
   - `409 VERSION_CONFLICT`
+
+### Batch
+- `POST /api/v1/batch/procurement-regeneration`
+  - `409 REGENERATION_IN_PROGRESS`
 
 ### Master APIs
 - `GET/PATCH /api/v1/products/{product_id}`

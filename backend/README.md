@@ -15,6 +15,17 @@ cp .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
+## Run batch worker (Celery)
+
+```bash
+celery -A app.workers.celery_app.celery_app worker --loglevel=info
+```
+
+Requires Redis and `.env` settings:
+- `REDIS_URL`
+- `CELERY_BROKER_URL`
+- `CELERY_RESULT_BACKEND`
+
 ## Run migration
 
 ```bash
