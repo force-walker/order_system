@@ -70,6 +70,18 @@ class AuditAction(str, enum.Enum):
     override = 'override'
 
 
+class Customer(Base):
+    __tablename__ = 'customers'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(255), index=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    version: Mapped[int] = mapped_column(default=1)
+
+
 class Product(Base):
     __tablename__ = 'products'
 
