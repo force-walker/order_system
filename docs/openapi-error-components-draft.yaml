@@ -17,7 +17,9 @@ components:
             - AUTH_REQUIRED
             - FORBIDDEN
             - ORDER_NOT_FOUND
+            - RESOURCE_NOT_FOUND
             - ORDER_STATUS_MISMATCH
+            - VERSION_CONFLICT
             - INVALID_TRANSITION_PAIR
             - STATUS_NO_TARGET_LINES
             - ORDER_WEIGHT_REQUIRED
@@ -103,6 +105,10 @@ components:
               value:
                 code: STATUS_NO_TARGET_LINES
                 message: no eligible lines
+            versionConflict:
+              value:
+                code: VERSION_CONFLICT
+                message: record has been updated by another user
 
     UnprocessableEntity:
       description: Validation error.
