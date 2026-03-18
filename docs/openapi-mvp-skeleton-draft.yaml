@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
   title: Order System MVP API Skeleton
-  version: 0.1.0
+  version: 0.2.0
   description: |
-    Skeleton-level OpenAPI for core MVP endpoints.
+    Skeleton-level OpenAPI for current MVP runtime.
     Error responses are standardized via shared ErrorResponse schema/codes.
 
 servers:
@@ -14,71 +14,114 @@ components:
     HealthResponse:
       type: object
       properties:
-        ok:
-          type: boolean
-      required: [ok]
+        status: { type: string, example: ok }
+      required: [status]
 
     IdResponse:
       type: object
       properties:
-        id:
-          type: integer
+        id: { type: integer }
       required: [id]
 
-    OrderCreateRequest:
+    ProductCreateRequest:
       type: object
-      required: [customer_id, order_datetime, delivery_type, delivery_date, billing_customer_id, items]
+      required: [sku, name, order_uom, purchase_uom, invoice_uom]
       properties:
-        customer_id: { type: integer }
-        order_datetime: { type: string, format: date-time }
-        delivery_type: { type: string }
-        delivery_date: { type: string, format: date }
-        delivery_note: { type: string }
-        billing_customer_id: { type: integer }
-        order_source: { type: string }
-        items:
-          type: array
-          minItems: 1
-          items:
-            type: object
-            required: [product_id, ordered_qty]
-            properties:
-              product_id: { type: integer }
-              ordered_qty: { type: number, format: decimal }
-              estimated_weight_kg: { type: number, format: decimal }
-              unit_price_uom_count: { type: number, format: decimal, nullable: true }
-              unit_price_uom_kg: { type: number, format: decimal, nullable: true }
-              price_ceiling: { type: number, format: decimal }
-              stockout_policy:
-                type: string
-                enum: [backorder, cancel, substitute, split]
-              comment: { type: string }
+        sku: { type: string }
+        name: { type: string }
+        order_uom: { type: string }
+        purchase_uom: { type: string }
+        invoice_uom: { type: string }
+        is_catch_weight: { type: boolean, default: false }
+        weight_capture_required: { type: boolean, default: false }
+        pricing_basis_default: { type: string, enum: [uom_count, uom_kg], default: uom_count }
 
-    OrderCreateResponse:
+    ProductUpdateRequest:
       type: object
-      required: [order_id, order_no, item_count]
+      required: [version]
+      properties:
+        name: { type: string }
+        order_uom: { type: string }
+        purchase_uom: { type: string }
+        invoice_uom: { type: string }
+        is_catch_weight: { type: boolean }
+        weight_capture_required: { type: boolean }
+        active: { type: boolean }
+        version: { type: integer, minimum: 1 }
+
+    ProductResponse:
+      type: object
+      required: [id, sku, name, active, version]
+      properties:
+        id: { type: integer }
+        sku: { type: string }
+        name: { type: string }
+        active: { type: boolean }
+        version: { type: integer }
+
+    CustomerCreateRequest:
+      type: object
+      required: [code, name]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        active: { type: boolean, default: true }
+
+    CustomerUpdateRequest:
+      type: object
+      required: [version]
+      properties:
+        name: { type: string }
+        active: { type: boolean }
+        version: { type: integer, minimum: 1 }
+
+    CustomerResponse:
+      type: object
+      required: [id, code, name, active, version]
+      properties:
+        id: { type: integer }
+        code: { type: string }
+        name: { type: string }
+        active: { type: boolean }
+        version: { type: integer }
+
+    OrderBulkTransitionRequest:
+      type: object
+      required: [from_status, to_status, version]
+      properties:
+        from_status:
+          type: string
+          enum: [confirmed, allocated, purchased, shipped]
+        to_status:
+          type: string
+          enum: [allocated, purchased, shipped, invoiced]
+        version: { type: integer, minimum: 1 }
+
+    OrderBulkTransitionResponse:
+      type: object
+      required: [order_id, updated_lines, updated_order_status]
       properties:
         order_id: { type: integer }
-        order_no: { type: string }
-        item_count: { type: integer }
+        updated_lines: { type: integer }
+        updated_order_status:
+          type: string
+          enum: [allocated, purchased, shipped, invoiced]
 
     AllocationOverrideRequest:
       type: object
-      required: [final_supplier_id, final_qty, final_uom, version]
+      required: [final_supplier_id, final_qty, final_uom, override_reason_code, overridden_by, version]
       properties:
         final_supplier_id: { type: integer }
-        final_qty: { type: number, format: decimal }
+        final_qty: { type: number }
         final_uom: { type: string }
-        target_price: { type: number, format: decimal }
-        stockout_policy: { type: string, enum: [backorder, cancel, substitute, split] }
-        comment: { type: string }
         override_reason_code: { type: string }
         override_note: { type: string }
-        version: { type: integer }
+        overridden_by: { type: string }
+        version: { type: integer, minimum: 1 }
 
     AllocationSplitRequest:
       type: object
-      required: [parts, version]
+      required: [parts, override_reason_code, overridden_by, version]
       properties:
         parts:
           type: array
@@ -88,59 +131,73 @@ components:
             required: [final_supplier_id, final_qty, final_uom]
             properties:
               final_supplier_id: { type: integer }
-              final_qty: { type: number, format: decimal }
+              final_qty: { type: number }
               final_uom: { type: string }
         override_reason_code: { type: string }
         override_note: { type: string }
-        version: { type: integer }
+        overridden_by: { type: string }
+        version: { type: integer, minimum: 1 }
 
-    PurchaseResultCreateRequest:
+    PurchaseResultRequest:
       type: object
-      required: [allocation_id, supplier_id, purchased_qty, result_status, version]
+      required: [allocation_id, purchased_qty, purchased_uom, result_status, version]
       properties:
         allocation_id: { type: integer }
         supplier_id: { type: integer }
-        purchased_qty: { type: number, format: decimal }
+        purchased_qty: { type: number }
         purchased_uom: { type: string }
-        actual_weight_kg: { type: number, format: decimal }
-        unit_cost: { type: number, format: decimal }
-        final_unit_cost: { type: number, format: decimal }
-        currency: { type: string, default: JPY }
+        actual_weight_kg: { type: number }
+        unit_cost: { type: number }
+        final_unit_cost: { type: number }
         result_status:
           type: string
           enum: [not_filled, filled, partially_filled, substituted]
+        shortage_qty: { type: number }
         shortage_policy:
           type: string
           enum: [backorder, cancel, substitute, split]
-        shortage_reason_code:
-          type: string
-          enum: [stockout, quality_issue, delivery_delay, supplier_reject, manual_adjustment]
-        shortage_note: { type: string }
-        comment: { type: string }
-        version: { type: integer }
+        invoiceable_flag: { type: boolean, default: true }
+        note: { type: string }
+        version: { type: integer, minimum: 1 }
 
-    InvoiceCreateRequest:
+    PurchaseResultBulkUpsertRequest:
       type: object
-      required: [order_id, invoice_date, delivery_date, invoice_customer_id, due_date, tax_rate]
+      required: [items]
       properties:
-        order_id: { type: integer }
-        invoice_date: { type: string, format: date }
-        delivery_date: { type: string, format: date }
-        invoice_customer_id: { type: integer }
-        payment_terms: { type: string }
-        due_date: { type: string, format: date }
-        tax_rate: { type: number, format: decimal }
-        currency: { type: string, default: HKD }
-
-    InvoiceFinalizeRequest:
-      type: object
-      required: [selected_line_ids, version]
-      properties:
-        selected_line_ids:
+        items:
           type: array
           minItems: 1
-          items: { type: integer }
+          items:
+            $ref: '#/components/schemas/PurchaseResultRequest'
+
+    PurchaseResultResponse:
+      type: object
+      required: [id, allocation_id, result_status, version]
+      properties:
+        id: { type: integer }
+        allocation_id: { type: integer }
+        result_status: { type: string }
         version: { type: integer }
+
+    InvoiceResetRequest:
+      type: object
+      required: [version, reset_reason_code]
+      properties:
+        version: { type: integer, minimum: 1 }
+        reset_reason_code:
+          type: string
+          enum: [data_error, pricing_error, tax_error, customer_change, policy_exception]
+        reason_note: { type: string, maxLength: 500 }
+
+    InvoiceUnlockRequest:
+      type: object
+      required: [version, unlock_reason_code]
+      properties:
+        version: { type: integer, minimum: 1 }
+        unlock_reason_code:
+          type: string
+          enum: [pricing_correction, quantity_correction, tax_correction, customer_request, data_fix, other]
+        reason_note: { type: string, maxLength: 500 }
 
     InvoiceFinalizeResponse:
       type: object
@@ -165,83 +222,309 @@ components:
         status: { type: string, enum: [finalized] }
         is_locked: { type: boolean }
 
-    InvoiceResetRequest:
+    AuditLogItem:
       type: object
-      required: [reset_reason_code, version]
+      required: [id, entity_type, entity_id, action, changed_by, changed_at]
       properties:
-        reset_reason_code:
-          type: string
-          enum: [data_error, pricing_error, tax_error, customer_change, policy_exception]
-        reset_note: { type: string }
-        version: { type: integer }
+        id: { type: integer }
+        entity_type: { type: string }
+        entity_id: { type: integer }
+        action: { type: string }
+        reason_code: { type: string, nullable: true }
+        changed_by: { type: string }
+        changed_at: { type: string, format: date-time }
+        before_json: { type: object, nullable: true, additionalProperties: true }
+        after_json: { type: object, nullable: true, additionalProperties: true }
 
-    OrderBulkTransitionRequest:
+    AuditLogListResponse:
       type: object
-      required: [from_status, to_status]
+      required: [items, count]
       properties:
-        from_status:
-          type: string
-          enum: [confirmed, allocated, purchased, shipped]
-        to_status:
-          type: string
-          enum: [allocated, purchased, shipped, invoiced]
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLogItem'
+        count: { type: integer }
 
-    OrderBulkTransitionResponse:
+    LoginRequest:
       type: object
-      required: [order_id, updated_lines, updated_order_status]
+      required: [user_id, role]
       properties:
-        order_id: { type: integer }
-        updated_lines: { type: integer }
-        updated_order_status:
-          type: string
-          enum: [allocated, purchased, shipped, invoiced]
+        user_id: { type: string }
+        role: { type: string, enum: [admin, order_entry, buyer, supplier, customer] }
+
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token: { type: string }
+
+    TokenResponse:
+      type: object
+      required: [access_token, refresh_token, token_type, expires_in]
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+        token_type: { type: string, example: bearer }
+        expires_in: { type: integer }
+
+    MeResponse:
+      type: object
+      required: [user_id, role]
+      properties:
+        user_id: { type: string }
+        role: { type: string }
 
     ErrorResponse:
       $ref: ./openapi-error-components-draft.yaml#/components/schemas/ErrorResponse
 
   responses:
-    BadRequest:
-      $ref: ./openapi-error-components-draft.yaml#/components/responses/BadRequest
-    Unauthorized:
-      $ref: ./openapi-error-components-draft.yaml#/components/responses/Unauthorized
-    Forbidden:
-      $ref: ./openapi-error-components-draft.yaml#/components/responses/Forbidden
-    NotFound:
-      $ref: ./openapi-error-components-draft.yaml#/components/responses/NotFound
-    Conflict:
-      $ref: ./openapi-error-components-draft.yaml#/components/responses/Conflict
-    UnprocessableEntity:
-      $ref: ./openapi-error-components-draft.yaml#/components/responses/UnprocessableEntity
+    BadRequest: { $ref: ./openapi-error-components-draft.yaml#/components/responses/BadRequest }
+    Unauthorized: { $ref: ./openapi-error-components-draft.yaml#/components/responses/Unauthorized }
+    Forbidden: { $ref: ./openapi-error-components-draft.yaml#/components/responses/Forbidden }
+    NotFound: { $ref: ./openapi-error-components-draft.yaml#/components/responses/NotFound }
+    Conflict: { $ref: ./openapi-error-components-draft.yaml#/components/responses/Conflict }
+    UnprocessableEntity: { $ref: ./openapi-error-components-draft.yaml#/components/responses/UnprocessableEntity }
 
 paths:
-  /api/v1/orders:
+  /api/v1/health:
+    get:
+      summary: Health check
+      tags: [ops]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthResponse' }
+
+  /api/v1/auth/login:
     post:
-      summary: Create order
-      tags: [orders]
+      tags: [auth]
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/OrderCreateRequest'
+            schema: { $ref: '#/components/schemas/LoginRequest' }
       responses:
-        '201':
-          description: Created
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefreshRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/v1/auth/logout:
+    post:
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefreshRequest' }
+      responses:
+        '200': { description: OK }
+
+  /api/v1/auth/me:
+    get:
+      tags: [auth]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/v1/audit-logs:
+    get:
+      tags: [audit]
+      parameters:
+        - in: query
+          name: entity_type
+          schema: { type: string }
+        - in: query
+          name: entity_id
+          schema: { type: integer }
+        - in: query
+          name: changed_by
+          schema: { type: string }
+        - in: query
+          name: from_ts
+          schema: { type: string, format: date-time }
+        - in: query
+          name: to_ts
+          schema: { type: string, format: date-time }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 500 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditLogListResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/products:
+    get:
+      tags: [products]
+      parameters:
+        - in: query
+          name: active
+          schema: { type: boolean }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 500 }
+      responses:
+        '200':
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderCreateResponse'
-        '400': { $ref: '#/components/responses/BadRequest' }
+                type: array
+                items: { $ref: '#/components/schemas/ProductResponse' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+    post:
+      tags: [products]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductCreateRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProductResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/products/{product_id}:
+    get:
+      tags: [products]
+      parameters:
+        - in: path
+          name: product_id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProductResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [products]
+      parameters:
+        - in: path
+          name: product_id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductUpdateRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProductResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /api/v1/customers:
+    get:
+      tags: [customers]
+      parameters:
+        - in: query
+          name: active
+          schema: { type: boolean }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 500 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CustomerResponse' }
+    post:
+      tags: [customers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CustomerCreateRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomerResponse' }
+
+  /api/v1/customers/{customer_id}:
+    get:
+      tags: [customers]
+      parameters:
+        - in: path
+          name: customer_id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomerResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [customers]
+      parameters:
+        - in: path
+          name: customer_id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CustomerUpdateRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomerResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
 
   /api/v1/orders/{order_id}/bulk-transition:
     post:
-      summary: User-triggered order bulk transition
-      description: |
-        Order-level transition runs only on explicit user action.
-        Multiple runs on the same business day are allowed.
       tags: [orders]
       parameters:
         - in: path
@@ -252,37 +535,19 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/OrderBulkTransitionRequest'
+            schema: { $ref: '#/components/schemas/OrderBulkTransitionRequest' }
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/OrderBulkTransitionResponse' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
-
-  /api/v1/allocations/run-auto:
-    post:
-      summary: Run auto allocation
-      tags: [allocations]
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/IdResponse' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '409': { $ref: '#/components/responses/Conflict' }
 
   /api/v1/allocations/{allocation_id}/override:
     patch:
-      summary: Override allocation
       tags: [allocations]
       parameters:
         - in: path
@@ -293,24 +558,14 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/AllocationOverrideRequest'
+            schema: { $ref: '#/components/schemas/AllocationOverrideRequest' }
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/IdResponse' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '200': { description: OK }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
-        '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
   /api/v1/allocations/{allocation_id}/split-line:
     post:
-      summary: Split allocation line
       tags: [allocations]
       parameters:
         - in: path
@@ -321,47 +576,31 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/AllocationSplitRequest'
+            schema: { $ref: '#/components/schemas/AllocationSplitRequest' }
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/IdResponse' }
+        '200': { description: OK }
         '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
-        '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
   /api/v1/purchase-results:
     post:
-      summary: Register purchase result
       tags: [purchase-results]
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/PurchaseResultCreateRequest'
+            schema: { $ref: '#/components/schemas/PurchaseResultRequest' }
       responses:
-        '201':
-          description: Created
+        '200':
+          description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/IdResponse' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+              schema: { $ref: '#/components/schemas/PurchaseResultResponse' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Conflict' }
-        '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
   /api/v1/purchase-results/{result_id}:
     patch:
-      summary: Update purchase result
       tags: [purchase-results]
       parameters:
         - in: path
@@ -372,76 +611,48 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/PurchaseResultCreateRequest'
+            schema: { $ref: '#/components/schemas/PurchaseResultRequest' }
       responses:
         '200':
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/IdResponse' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+              schema: { $ref: '#/components/schemas/PurchaseResultResponse' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
-        '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
-  /api/v1/invoices:
+  /api/v1/purchase-results/bulk-upsert:
     post:
-      summary: Create invoice
-      tags: [invoices]
+      tags: [purchase-results]
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/InvoiceCreateRequest'
+            schema: { $ref: '#/components/schemas/PurchaseResultBulkUpsertRequest' }
       responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/IdResponse' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '200': { description: OK }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
-        '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
   /api/v1/invoices/{invoice_id}/finalize:
     post:
-      summary: Finalize invoice
       tags: [invoices]
       parameters:
         - in: path
           name: invoice_id
           required: true
           schema: { type: integer }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/InvoiceFinalizeRequest'
       responses:
         '200':
-          description: Finalized
+          description: OK
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/InvoiceFinalizeResponse'
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+              schema: { $ref: '#/components/schemas/InvoiceFinalizeResponse' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
-        '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
   /api/v1/invoices/{invoice_id}/reset-to-draft:
     post:
-      summary: Reset invoice to draft (Admin only)
       tags: [invoices]
       parameters:
         - in: path
@@ -452,28 +663,19 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/InvoiceResetRequest'
+            schema: { $ref: '#/components/schemas/InvoiceResetRequest' }
       responses:
         '200':
-          description: Reset done
+          description: OK
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/InvoiceResetResponse'
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+              schema: { $ref: '#/components/schemas/InvoiceResetResponse' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
 
   /api/v1/invoices/{invoice_id}/unlock:
     post:
-      summary: Unlock finalized invoice (Admin only)
-      description: |
-        Unlock target must be finalized and locked invoice.
-        Unlock reason code is mandatory. Post-unlock edits are admin-only.
       tags: [invoices]
       parameters:
         - in: path
@@ -484,26 +686,13 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              required: [unlock_reason_code]
-              properties:
-                unlock_reason_code:
-                  type: string
-                  enum: [pricing_correction, quantity_correction, tax_correction, customer_request, data_fix, other]
-                reason_note:
-                  type: string
-                  maxLength: 500
+            schema: { $ref: '#/components/schemas/InvoiceUnlockRequest' }
       responses:
         '200':
-          description: Unlock done
+          description: OK
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/InvoiceUnlockResponse'
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+              schema: { $ref: '#/components/schemas/InvoiceUnlockResponse' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
