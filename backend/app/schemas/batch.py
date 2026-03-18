@@ -15,3 +15,19 @@ class JobStatusResponse(BaseModel):
     status: str
     result: dict | None = None
     error_message: str | None = None
+
+
+class JobHistoryItem(BaseModel):
+    task_id: str
+    job_type: str
+    order_id: int | None = None
+    status: str
+    requested_by: str
+    requested_at: str
+    started_at: str | None = None
+    finished_at: str | None = None
+
+
+class JobHistoryListResponse(BaseModel):
+    items: list[JobHistoryItem]
+    count: int

@@ -13,6 +13,7 @@ EXPECTED_PATHS = {
     '/api/v1/auth/logout',
     '/api/v1/auth/me',
     '/api/v1/batch/procurement-regeneration',
+    '/api/v1/batch/jobs',
     '/api/v1/batch/jobs/{task_id}',
     '/api/v1/products',
     '/api/v1/products/{product_id}',
