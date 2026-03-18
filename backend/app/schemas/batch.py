@@ -14,3 +14,4 @@ class JobStatusResponse(BaseModel):
     task_id: str
     status: str
     result: dict | None = None
+    error_message: str | None = None

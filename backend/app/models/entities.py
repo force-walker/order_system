@@ -99,6 +99,7 @@ class Product(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    version: Mapped[int] = mapped_column(default=1)
 
 
 class Order(Base):
@@ -253,3 +254,19 @@ class AuditLog(Base):
     changed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
     __table_args__ = (UniqueConstraint('id', 'entity_type', name='uq_audit_id_entity'),)
+
+
+class BatchJobHistory(Base):
+    __tablename__ = 'batch_job_histories'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    job_type: Mapped[str] = mapped_column(String(64), index=True)
+    order_id: Mapped[int | None] = mapped_column(index=True)
+    status: Mapped[str] = mapped_column(String(32), index=True)
+    requested_by: Mapped[str] = mapped_column(String(64))
+    requested_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime)
+    result_json: Mapped[dict | None] = mapped_column(JSONB)
+    error_message: Mapped[str | None] = mapped_column(Text)

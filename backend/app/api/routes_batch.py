@@ -1,10 +1,13 @@
 import redis
 from celery.result import AsyncResult
 from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
 from app.core.auth import AuthContext, require_roles
 from app.core.config import settings
 from app.core.errors import api_error
+from app.db.session import get_db
+from app.models.entities import BatchJobHistory
 from app.schemas.batch import JobEnqueueResponse, JobStatusResponse, ProcurementRegenerationRequest
 from app.workers.tasks import procurement_regeneration
 
@@ -19,6 +22,7 @@ def _lock_key(order_id: int) -> str:
 @router.post('/procurement-regeneration', response_model=JobEnqueueResponse)
 def enqueue_procurement_regeneration(
     payload: ProcurementRegenerationRequest,
+    db: Session = Depends(get_db),
     auth: AuthContext = Depends(require_roles('admin', 'buyer')),
 ) -> JobEnqueueResponse:
     key = _lock_key(payload.order_id)
@@ -27,14 +31,38 @@ def enqueue_procurement_regeneration(
         api_error(409, 'REGENERATION_IN_PROGRESS', 'procurement regeneration already running for this order')
 
     task = procurement_regeneration.delay(payload.order_id, auth.user_id)
+
+    db.add(
+        BatchJobHistory(
+            task_id=task.id,
+            job_type='procurement_regeneration',
+            order_id=payload.order_id,
+            status='queued',
+            requested_by=auth.user_id,
+        )
+    )
+    db.commit()
+
     return JobEnqueueResponse(task_id=task.id, status='queued')
 
 
 @router.get('/jobs/{task_id}', response_model=JobStatusResponse)
 def get_job_status(
     task_id: str,
+    db: Session = Depends(get_db),
     auth: AuthContext = Depends(require_roles('admin', 'buyer', 'order_entry')),
 ) -> JobStatusResponse:
+    history = db.query(BatchJobHistory).filter(BatchJobHistory.task_id == task_id).one_or_none()
+
+    if history is not None:
+        return JobStatusResponse(
+            task_id=task_id,
+            status=history.status,
+            result=history.result_json,
+            error_message=history.error_message,
+        )
+
+    # fallback for older tasks created before history table was introduced
     res = AsyncResult(task_id)
     status = str(res.status).lower()
 
@@ -46,4 +74,4 @@ def get_job_status(
         else:
             result = {'value': str(val)}
 
-    return JobStatusResponse(task_id=task_id, status=status, result=result)
+    return JobStatusResponse(task_id=task_id, status=status, result=result, error_message=None)
