@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.routes_allocations import router as allocations_router
+from app.api.routes_audit import router as audit_router
 from app.api.routes_auth import router as auth_router
 from app.api.routes_invoices import router as invoices_router
 from app.api.routes_orders import router as orders_router
@@ -17,6 +18,7 @@ def health() -> HealthResponse:
 
 
 router.include_router(auth_router)
+router.include_router(audit_router)
 router.include_router(products_router)
 router.include_router(orders_router)
 router.include_router(allocations_router)
