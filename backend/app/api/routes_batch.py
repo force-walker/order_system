@@ -98,7 +98,6 @@ def enqueue_procurement_regeneration(
 
 
 
-
 @router.post('/jobs/{task_id}/retry', response_model=JobEnqueueResponse)
 def retry_job(
     task_id: str,
@@ -112,6 +111,19 @@ def retry_job(
         api_error(422, 'INVALID_TRANSITION_PAIR', 'retry unsupported for this job type')
     if history.order_id is None:
         api_error(409, 'STATUS_NO_TARGET_LINES', 'order_id missing in history')
+    if history.status != 'failed':
+        api_error(409, 'RETRY_NOT_ALLOWED', 'retry allowed only for failed jobs')
+    if int(history.retry_count or 0) >= int(history.max_retries or 3):
+        api_error(409, 'RETRY_LIMIT_EXCEEDED', 'retry limit exceeded')
+
+    has_child = (
+        db.query(BatchJobHistory)
+        .filter(BatchJobHistory.parent_task_id == history.task_id)
+        .first()
+        is not None
+    )
+    if has_child:
+        api_error(409, 'RETRY_NOT_ALLOWED', 'retry only allowed on latest attempt')
 
     key = _lock_key(history.order_id)
     acquired = rds.set(key, auth.user_id, nx=True, ex=60 * 30)

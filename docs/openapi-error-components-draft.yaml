@@ -43,6 +43,8 @@ components:
             - SPLIT_GROUP_QTY_MISMATCH
             - SPLIT_GROUP_UOM_MISMATCH
             - REGENERATION_IN_PROGRESS
+            - RETRY_NOT_ALLOWED
+            - RETRY_LIMIT_EXCEEDED
         message:
           type: string
 

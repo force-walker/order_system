@@ -48,6 +48,11 @@ curl -X POST http://127.0.0.1:8000/api/v1/batch/jobs/<task_id>/retry \
   -H "Authorization: Bearer <token>"
 ```
 
+Retry guard policy:
+- only `failed` jobs are retryable
+- only latest attempt in chain is retryable
+- retry is blocked when `retry_count >= max_retries`
+
 4) History list
 ```bash
 curl -X GET "http://127.0.0.1:8000/api/v1/batch/jobs?job_type=procurement_regeneration&limit=50" \

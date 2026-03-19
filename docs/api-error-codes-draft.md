@@ -66,6 +66,8 @@ Required fields:
 - `INVOICE_NOT_FINALIZED`
 - `INVOICE_NOT_LOCKED_FINALIZED`
 - `REGENERATION_IN_PROGRESS`
+- `RETRY_NOT_ALLOWED`
+- `RETRY_LIMIT_EXCEEDED`
 
 ### 3.6 422 Unprocessable Entity
 - `INVALID_TRANSITION_PAIR`
@@ -133,6 +135,11 @@ Required fields:
 
 ### Batch
 - `POST /api/v1/batch/procurement-regeneration`
+  - `409 REGENERATION_IN_PROGRESS`
+- `POST /api/v1/batch/jobs/{task_id}/retry`
+  - `404 RESOURCE_NOT_FOUND`
+  - `409 RETRY_NOT_ALLOWED` (failed以外/最新attempt以外)
+  - `409 RETRY_LIMIT_EXCEEDED`
   - `409 REGENERATION_IN_PROGRESS`
 
 ### Master APIs
