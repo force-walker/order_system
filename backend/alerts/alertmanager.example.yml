@@ -1,0 +1,19 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: discord-default
+  group_by: [alertname, service, component]
+  group_wait: 30s
+  group_interval: 2m
+  repeat_interval: 2h
+
+receivers:
+  - name: discord-default
+    webhook_configs:
+      # Replace with your bridge endpoint that forwards to Discord.
+      # Example: https://your-alert-bridge.example.com/discord/webhook
+      - url: 'https://example-alert-bridge.invalid/discord/webhook'
+        send_resolved: true
+
+templates: []

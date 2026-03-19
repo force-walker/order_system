@@ -23,6 +23,41 @@ uvicorn app.main:app --reload --port 8000
   - Batch enqueue counter (`order_system_batch_enqueues_total`)
   - Batch retry counter (`order_system_batch_retries_total`)
 
+## Prometheus / Alertmanager
+
+Example files:
+- `alerts/prometheus.scrape.example.yml`
+- `alerts/order_system_rules.yml`
+- `alerts/alertmanager.example.yml`
+
+### Quick setup flow
+
+1) Run API and confirm metrics endpoint:
+```bash
+curl -s http://127.0.0.1:8000/api/v1/metrics | head
+```
+
+2) Load scrape + rules into Prometheus
+- set `metrics_path: /api/v1/metrics`
+- set target to your API host:port
+
+3) Load Alertmanager receiver config
+- use `alerts/alertmanager.example.yml` as template
+- set your webhook bridge URL for Discord delivery
+
+### Alert policy (current)
+
+- `OrderSystemApiHigh5xxRate`:
+  - 5xx ratio > 5% for 5m
+- `OrderSystemApiDown`:
+  - API target down for >2m
+- `OrderSystemBatchRetryBlockedSpike`:
+  - retry blocked >=5 in 10m
+- `OrderSystemBatchRetryLimitExceeded`:
+  - retry limit exceeded >=1 in 15m
+- `OrderSystemBatchEnqueueBlockedSpike`:
+  - enqueue blocked >=5 in 10m
+
 ## Run batch worker (Celery)
 
 ```bash

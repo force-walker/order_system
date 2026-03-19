@@ -1,0 +1,68 @@
+groups:
+  - name: order-system-api
+    interval: 30s
+    rules:
+      - alert: OrderSystemApiHigh5xxRate
+        expr: |
+          sum(rate(order_system_api_requests_total{status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(order_system_api_requests_total[5m])), 0.001)
+          > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: order-system
+          component: api
+        annotations:
+          summary: "Order System API 5xx rate is high"
+          description: "5xx ratio > 5% for 5m. Check recent deploys, DB health, and app logs."
+
+      - alert: OrderSystemApiDown
+        expr: up{job="order-system-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: order-system
+          component: api
+        annotations:
+          summary: "Order System API target is down"
+          description: "Prometheus target job=order-system-api is down for >2m."
+
+  - name: order-system-batch
+    interval: 30s
+    rules:
+      - alert: OrderSystemBatchRetryBlockedSpike
+        expr: |
+          increase(order_system_batch_retries_total{job_type="procurement_regeneration",result="blocked"}[10m]) >= 5
+        for: 1m
+        labels:
+          severity: warning
+          service: order-system
+          component: batch
+        annotations:
+          summary: "Batch retry blocked spikes detected"
+          description: "REGENERATION_IN_PROGRESS blocks >=5 in 10m. Investigate stuck locks or long-running tasks."
+
+      - alert: OrderSystemBatchRetryLimitExceeded
+        expr: |
+          increase(order_system_batch_retries_total{job_type="procurement_regeneration",result="limit_exceeded"}[15m]) >= 1
+        for: 1m
+        labels:
+          severity: warning
+          service: order-system
+          component: batch
+        annotations:
+          summary: "Batch retry limit exceeded"
+          description: "At least one job exceeded max retries in last 15m. Manual investigation is required."
+
+      - alert: OrderSystemBatchEnqueueBlockedSpike
+        expr: |
+          increase(order_system_batch_enqueues_total{job_type="procurement_regeneration",result="blocked"}[10m]) >= 5
+        for: 1m
+        labels:
+          severity: warning
+          service: order-system
+          component: batch
+        annotations:
+          summary: "Batch enqueue blocked spikes detected"
+          description: "enqueue blocked >=5 in 10m. Check lock expiry and worker throughput."
