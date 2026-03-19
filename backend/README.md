@@ -15,6 +15,14 @@ cp .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
+## Metrics
+
+- Endpoint: `GET /api/v1/metrics`
+- Includes:
+  - API request counter (`order_system_api_requests_total`)
+  - Batch enqueue counter (`order_system_batch_enqueues_total`)
+  - Batch retry counter (`order_system_batch_retries_total`)
+
 ## Run batch worker (Celery)
 
 ```bash

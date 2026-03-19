@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.auth import AuthContext, require_roles
 from app.core.config import settings
 from app.core.errors import api_error
+from app.core.metrics import batch_enqueues_total, batch_retries_total
 from app.db.session import get_db
 from app.models.entities import BatchJobHistory
 from app.schemas.batch import (
@@ -79,6 +80,7 @@ def enqueue_procurement_regeneration(
     key = _lock_key(payload.order_id)
     acquired = rds.set(key, auth.user_id, nx=True, ex=60 * 30)
     if not acquired:
+        batch_enqueues_total.labels(job_type='procurement_regeneration', result='blocked').inc()
         api_error(409, 'REGENERATION_IN_PROGRESS', 'procurement regeneration already running for this order')
 
     task = procurement_regeneration.delay(payload.order_id, auth.user_id)
@@ -94,6 +96,7 @@ def enqueue_procurement_regeneration(
     )
     db.commit()
 
+    batch_enqueues_total.labels(job_type='procurement_regeneration', result='queued').inc()
     return JobEnqueueResponse(task_id=task.id, status='queued', retry_count=0)
 
 
@@ -106,14 +109,17 @@ def retry_job(
 ) -> JobEnqueueResponse:
     history = db.query(BatchJobHistory).filter(BatchJobHistory.task_id == task_id).one_or_none()
     if history is None:
+        batch_retries_total.labels(job_type='procurement_regeneration', result='not_found').inc()
         api_error(404, 'RESOURCE_NOT_FOUND', 'batch job not found')
     if history.job_type != 'procurement_regeneration':
         api_error(422, 'INVALID_TRANSITION_PAIR', 'retry unsupported for this job type')
     if history.order_id is None:
         api_error(409, 'STATUS_NO_TARGET_LINES', 'order_id missing in history')
     if history.status != 'failed':
+        batch_retries_total.labels(job_type='procurement_regeneration', result='not_allowed').inc()
         api_error(409, 'RETRY_NOT_ALLOWED', 'retry allowed only for failed jobs')
     if int(history.retry_count or 0) >= int(history.max_retries or 3):
+        batch_retries_total.labels(job_type='procurement_regeneration', result='limit_exceeded').inc()
         api_error(409, 'RETRY_LIMIT_EXCEEDED', 'retry limit exceeded')
 
     has_child = (
@@ -123,11 +129,13 @@ def retry_job(
         is not None
     )
     if has_child:
+        batch_retries_total.labels(job_type='procurement_regeneration', result='not_latest').inc()
         api_error(409, 'RETRY_NOT_ALLOWED', 'retry only allowed on latest attempt')
 
     key = _lock_key(history.order_id)
     acquired = rds.set(key, auth.user_id, nx=True, ex=60 * 30)
     if not acquired:
+        batch_retries_total.labels(job_type='procurement_regeneration', result='blocked').inc()
         api_error(409, 'REGENERATION_IN_PROGRESS', 'procurement regeneration already running for this order')
 
     task = procurement_regeneration.delay(history.order_id, auth.user_id)
@@ -147,6 +155,7 @@ def retry_job(
     )
     db.commit()
 
+    batch_retries_total.labels(job_type='procurement_regeneration', result='queued').inc()
     return JobEnqueueResponse(task_id=task.id, status='queued', retry_count=retry_count)
 
 @router.get('/jobs/{task_id}', response_model=JobStatusResponse)
