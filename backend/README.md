@@ -26,6 +26,34 @@ Requires Redis and `.env` settings:
 - `CELERY_BROKER_URL`
 - `CELERY_RESULT_BACKEND`
 
+## Batch failure handling (operations)
+
+1) Enqueue
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/batch/procurement-regeneration \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"order_id": 1001}'
+```
+
+2) Check status
+```bash
+curl -X GET http://127.0.0.1:8000/api/v1/batch/jobs/<task_id> \
+  -H "Authorization: Bearer <token>"
+```
+
+3) If failed, retry
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/batch/jobs/<task_id>/retry \
+  -H "Authorization: Bearer <token>"
+```
+
+4) History list
+```bash
+curl -X GET "http://127.0.0.1:8000/api/v1/batch/jobs?job_type=procurement_regeneration&limit=50" \
+  -H "Authorization: Bearer <token>"
+```
+
 ## Run migration
 
 ```bash

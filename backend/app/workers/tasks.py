@@ -27,14 +27,21 @@ def _update_job(task_id: str, **fields):
         db.close()
 
 
-@celery_app.task(name='tasks.procurement_regeneration', bind=True)
+@celery_app.task(
+    name='tasks.procurement_regeneration',
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_backoff_max=300,
+    retry_jitter=True,
+    retry_kwargs={'max_retries': 3},
+)
 def procurement_regeneration(self, order_id: int, requested_by: str):
     started_at = datetime.now(UTC)
     _update_job(self.request.id, status='running', started_at=started_at)
 
     db = SessionLocal()
     try:
-        # Minimal real work: regenerate suggested allocations for eligible lines.
         lines = (
             db.query(OrderItem)
             .filter(
@@ -79,6 +86,7 @@ def procurement_regeneration(self, order_id: int, requested_by: str):
             'touched_lines': touched_lines,
             'created_allocations': created_allocations,
             'updated_allocations': updated_allocations,
+            'retry_count': int(self.request.retries or 0),
         }
         _update_job(
             self.request.id,
@@ -86,18 +94,25 @@ def procurement_regeneration(self, order_id: int, requested_by: str):
             finished_at=finished_at,
             result_json=result,
             error_message=None,
+            retry_count=int(self.request.retries or 0),
+            max_retries=int(self.max_retries or 3),
         )
+        rds.delete(_lock_key(order_id))
         return result
     except Exception as e:
         db.rollback()
         finished_at = datetime.now(UTC)
+        is_final_failure = int(self.request.retries or 0) >= int(self.max_retries or 3)
         _update_job(
             self.request.id,
-            status='failed',
+            status='failed' if is_final_failure else 'retrying',
             finished_at=finished_at,
             error_message=str(e),
+            retry_count=int(self.request.retries or 0),
+            max_retries=int(self.max_retries or 3),
         )
+        if is_final_failure:
+            rds.delete(_lock_key(order_id))
         raise
     finally:
         db.close()
-        rds.delete(_lock_key(order_id))

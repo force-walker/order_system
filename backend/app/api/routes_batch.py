@@ -61,6 +61,9 @@ def list_jobs(
             requested_at=r.requested_at.isoformat() if r.requested_at else '',
             started_at=r.started_at.isoformat() if r.started_at else None,
             finished_at=r.finished_at.isoformat() if r.finished_at else None,
+            parent_task_id=r.parent_task_id,
+            retry_count=int(r.retry_count or 0),
+            max_retries=int(r.max_retries or 3),
         )
         for r in rows
     ]
@@ -91,8 +94,48 @@ def enqueue_procurement_regeneration(
     )
     db.commit()
 
-    return JobEnqueueResponse(task_id=task.id, status='queued')
+    return JobEnqueueResponse(task_id=task.id, status='queued', retry_count=0)
 
+
+
+
+@router.post('/jobs/{task_id}/retry', response_model=JobEnqueueResponse)
+def retry_job(
+    task_id: str,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(require_roles('admin', 'buyer')),
+) -> JobEnqueueResponse:
+    history = db.query(BatchJobHistory).filter(BatchJobHistory.task_id == task_id).one_or_none()
+    if history is None:
+        api_error(404, 'RESOURCE_NOT_FOUND', 'batch job not found')
+    if history.job_type != 'procurement_regeneration':
+        api_error(422, 'INVALID_TRANSITION_PAIR', 'retry unsupported for this job type')
+    if history.order_id is None:
+        api_error(409, 'STATUS_NO_TARGET_LINES', 'order_id missing in history')
+
+    key = _lock_key(history.order_id)
+    acquired = rds.set(key, auth.user_id, nx=True, ex=60 * 30)
+    if not acquired:
+        api_error(409, 'REGENERATION_IN_PROGRESS', 'procurement regeneration already running for this order')
+
+    task = procurement_regeneration.delay(history.order_id, auth.user_id)
+
+    retry_count = int(history.retry_count or 0) + 1
+    db.add(
+        BatchJobHistory(
+            task_id=task.id,
+            parent_task_id=history.task_id,
+            job_type=history.job_type,
+            order_id=history.order_id,
+            status='queued',
+            requested_by=auth.user_id,
+            retry_count=retry_count,
+            max_retries=history.max_retries or 3,
+        )
+    )
+    db.commit()
+
+    return JobEnqueueResponse(task_id=task.id, status='queued', retry_count=retry_count)
 
 @router.get('/jobs/{task_id}', response_model=JobStatusResponse)
 def get_job_status(
@@ -108,6 +151,8 @@ def get_job_status(
             status=history.status,
             result=history.result_json,
             error_message=history.error_message,
+            retry_count=int(history.retry_count or 0),
+            max_retries=int(history.max_retries or 3),
         )
 
     # fallback for older tasks created before history table was introduced
@@ -122,4 +167,4 @@ def get_job_status(
         else:
             result = {'value': str(val)}
 
-    return JobStatusResponse(task_id=task_id, status=status, result=result, error_message=None)
+    return JobStatusResponse(task_id=task_id, status=status, result=result, error_message=None, retry_count=0, max_retries=3)
