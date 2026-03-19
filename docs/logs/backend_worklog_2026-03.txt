@@ -60,20 +60,33 @@ BUG候補:
 [2026-03-19][OpenClawBot]
 PROGRESS:
 - 今日やったこと:
-  - （追記予定）
+  - Batch再試行の安全化を実装（failedのみ、retry上限、最新attemptのみ）
+  - retry運用導線を整備（`POST /api/v1/batch/jobs/{task_id}/retry` ガード強化、README更新）
+  - `/metrics` 追加（APIリクエスト総数、batch enqueue/retryカウンター）
+  - E2Eテスト追加（enqueue→worker→history更新→retry拒否、retry上限超過ケース）
+  - Prometheus/Alertmanagerテンプレ追加（rule/scrape/receiver例）
 - 明日やること:
-  - （追記予定）
+  - API latencyヒストグラム（P95/P99）を追加
+  - アラートにlatency閾値を追加
+  - 必要ならbatch失敗時の手動運用runbookを追記
 - ブロッカー:
-  - （追記予定）
+  - pytest実行環境の未整備（環境により `python3 -m pytest` が未導入のケースあり）
 
 BUG候補:
 - なし / あり（概要）:
-  - （追記予定）
+  - あり（軽微）: AlertmanagerのDiscord通知はbridge URL差し替え前提
 - 再現手順（簡易）:
-  - （追記予定）
+  - `alerts/alertmanager.example.yml` のURLを未設定のまま運用すると通知が届かない
 - 影響範囲（簡易）:
-  - （追記予定）
+  - 監視通知運用のみ（API本体には影響なし）
 
 参照:
 - スレッド/メッセージURL
   - #03-backend
+  - 主要コミット: 39cd2b9, f5f763c, 3512d46, 2a565f6, 3439d4b
+
+## 2026-03-20
+
+### 00:13 JST+8 ログ更新依頼を反映（OpenClawBot）
+- Kojiからの「backend log text file update」依頼を受領。
+- 03-19分の進捗詳細をログへ確定反映。
