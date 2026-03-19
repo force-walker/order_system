@@ -47,7 +47,7 @@ def _auth_header(user_id: str = 'e2e-user', role: str = 'buyer') -> dict[str, st
     return {'Authorization': f'Bearer {access}'}
 
 
-def test_batch_e2e_enqueue_worker_and_retry_flow(monkeypatch):
+def _setup_test_env(monkeypatch):
     engine = create_engine(
         'sqlite+pysqlite:///:memory:',
         connect_args={'check_same_thread': False},
@@ -74,7 +74,6 @@ def test_batch_e2e_enqueue_worker_and_retry_flow(monkeypatch):
     delay_stub = _FakeDelay()
     monkeypatch.setattr(routes_batch, 'procurement_regeneration', delay_stub)
 
-    # seed one order + line
     db = TestingSessionLocal()
     order = Order(
         order_no='E2E-001',
@@ -100,6 +99,11 @@ def test_batch_e2e_enqueue_worker_and_retry_flow(monkeypatch):
     db.commit()
     db.close()
 
+    return TestingSessionLocal, delay_stub
+
+
+def test_batch_e2e_enqueue_worker_and_retry_flow(monkeypatch):
+    TestingSessionLocal, delay_stub = _setup_test_env(monkeypatch)
     client = TestClient(app)
 
     # 1) enqueue
@@ -140,5 +144,38 @@ def test_batch_e2e_enqueue_worker_and_retry_flow(monkeypatch):
     no_retry = client.post(f'/api/v1/batch/jobs/{task_id}/retry', headers=_auth_header())
     assert no_retry.status_code == 409
     assert no_retry.json()['detail']['code'] == 'RETRY_NOT_ALLOWED'
+
+    app.dependency_overrides.clear()
+
+
+
+def test_batch_retry_limit_exceeded(monkeypatch):
+    TestingSessionLocal, delay_stub = _setup_test_env(monkeypatch)
+    client = TestClient(app)
+
+    db = TestingSessionLocal()
+    failed = BatchJobHistory(
+        task_id='failed-limit',
+        job_type='procurement_regeneration',
+        order_id=1,
+        status='failed',
+        requested_by='e2e-user',
+        retry_count=3,
+        max_retries=3,
+    )
+    db.add(failed)
+    db.commit()
+    db.close()
+
+    delay_stub.next_id = 'should-not-run'
+    res = client.post('/api/v1/batch/jobs/failed-limit/retry', headers=_auth_header())
+    assert res.status_code == 409
+    assert res.json()['detail']['code'] == 'RETRY_LIMIT_EXCEEDED'
+
+    # Ensure no child retry job was created.
+    db = TestingSessionLocal()
+    child = db.query(BatchJobHistory).filter(BatchJobHistory.parent_task_id == 'failed-limit').first()
+    assert child is None
+    db.close()
 
     app.dependency_overrides.clear()
