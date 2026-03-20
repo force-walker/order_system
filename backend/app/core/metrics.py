@@ -19,6 +19,12 @@ batch_retries_total = Counter(
     ['job_type', 'result'],
 )
 
+batch_task_executions_total = Counter(
+    'order_system_batch_task_executions_total',
+    'Batch task execution outcomes',
+    ['job_type', 'status'],
+)
+
 api_request_duration_seconds = Histogram(
     'order_system_api_request_duration_seconds',
     'API request latency in seconds',

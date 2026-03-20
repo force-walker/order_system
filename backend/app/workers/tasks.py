@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 import redis
 
 from app.core.config import settings
+from app.core.metrics import batch_task_executions_total
 from app.db.session import SessionLocal
 from app.models.entities import BatchJobHistory, LineStatus, OrderItem, SupplierAllocation
 from app.workers.celery_app import celery_app
@@ -97,6 +98,7 @@ def procurement_regeneration(self, order_id: int, requested_by: str):
             retry_count=int(self.request.retries or 0),
             max_retries=int(self.max_retries or 3),
         )
+        batch_task_executions_total.labels(job_type='procurement_regeneration', status='completed').inc()
         rds.delete(_lock_key(order_id))
         return result
     except Exception as e:
@@ -111,6 +113,10 @@ def procurement_regeneration(self, order_id: int, requested_by: str):
             retry_count=int(self.request.retries or 0),
             max_retries=int(self.max_retries or 3),
         )
+        batch_task_executions_total.labels(
+            job_type='procurement_regeneration',
+            status='failed' if is_final_failure else 'retrying',
+        ).inc()
         if is_final_failure:
             rds.delete(_lock_key(order_id))
         raise

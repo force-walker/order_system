@@ -89,6 +89,30 @@ groups:
           summary: "Batch retry limit exceeded"
           description: "At least one job exceeded max retries in last 15m. Manual investigation is required."
 
+      - alert: OrderSystemBatchTaskFailureSpike
+        expr: |
+          increase(order_system_batch_task_executions_total{job_type="procurement_regeneration",status="failed"}[15m]) >= 1
+        for: 1m
+        labels:
+          severity: critical
+          service: order-system
+          component: batch
+        annotations:
+          summary: "Batch task failures detected"
+          description: "One or more procurement regeneration tasks failed in last 15m."
+
+      - alert: OrderSystemBatchTaskRetryingSpike
+        expr: |
+          increase(order_system_batch_task_executions_total{job_type="procurement_regeneration",status="retrying"}[10m]) >= 3
+        for: 1m
+        labels:
+          severity: warning
+          service: order-system
+          component: batch
+        annotations:
+          summary: "Batch tasks entering retrying state frequently"
+          description: "Retrying spikes suggest transient infra/data instability."
+
       - alert: OrderSystemBatchEnqueueBlockedSpike
         expr: |
           increase(order_system_batch_enqueues_total{job_type="procurement_regeneration",result="blocked"}[10m]) >= 5

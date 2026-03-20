@@ -37,6 +37,7 @@ uvicorn app.main:app --reload --port 8000
   - API latency histogram (`order_system_api_request_duration_seconds`)
   - Batch enqueue counter (`order_system_batch_enqueues_total`)
   - Batch retry counter (`order_system_batch_retries_total`)
+  - Batch execution outcome counter (`order_system_batch_task_executions_total`)
 
 ## Prometheus / Alertmanager
 
@@ -74,6 +75,10 @@ curl -s http://127.0.0.1:8000/api/v1/metrics | head
   - retry blocked >=5 in 10m
 - `OrderSystemBatchRetryLimitExceeded`:
   - retry limit exceeded >=1 in 15m
+- `OrderSystemBatchTaskFailureSpike`:
+  - failed task >=1 in 15m
+- `OrderSystemBatchTaskRetryingSpike`:
+  - retrying state >=3 in 10m
 - `OrderSystemBatchEnqueueBlockedSpike`:
   - enqueue blocked >=5 in 10m
 
