@@ -275,6 +275,59 @@ components:
         user_id: { type: string }
         role: { type: string }
 
+
+
+    ProcurementRegenerationRequest:
+      type: object
+      required: [order_id]
+      properties:
+        order_id: { type: integer, minimum: 1 }
+
+    JobEnqueueResponse:
+      type: object
+      required: [task_id, status, retry_count]
+      properties:
+        task_id: { type: string }
+        status: { type: string }
+        retry_count: { type: integer }
+
+    JobStatusResponse:
+      type: object
+      required: [task_id, status, retry_count, max_retries]
+      properties:
+        task_id: { type: string }
+        status: { type: string }
+        result: { type: object, nullable: true, additionalProperties: true }
+        error_message: { type: string, nullable: true }
+        retry_count: { type: integer }
+        max_retries: { type: integer }
+
+    JobHistoryItem:
+      type: object
+      required: [task_id, job_type, status, requested_by, requested_at, retry_count, max_retries]
+      properties:
+        task_id: { type: string }
+        parent_task_id: { type: string, nullable: true }
+        job_type: { type: string }
+        order_id: { type: integer, nullable: true }
+        status: { type: string }
+        requested_by: { type: string }
+        requested_at: { type: string, format: date-time }
+        started_at: { type: string, format: date-time, nullable: true }
+        finished_at: { type: string, format: date-time, nullable: true }
+        retry_count: { type: integer }
+        max_retries: { type: integer }
+
+    JobHistoryListResponse:
+      type: object
+      required: [items, count]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobHistoryItem'
+        count: { type: integer }
+
     ErrorResponse:
       $ref: ./openapi-error-components-draft.yaml#/components/schemas/ErrorResponse
 
@@ -523,6 +576,14 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
 
+
+  /api/v1/metrics:
+    get:
+      tags: [metrics]
+      responses:
+        '200':
+          description: Prometheus metrics
+
   /api/v1/orders/{order_id}/bulk-transition:
     post:
       tags: [orders]
@@ -693,6 +754,85 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/InvoiceUnlockResponse' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+
+  /api/v1/batch/procurement-regeneration:
+    post:
+      tags: [batch]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProcurementRegenerationRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobEnqueueResponse' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /api/v1/batch/jobs:
+    get:
+      tags: [batch]
+      parameters:
+        - in: query
+          name: job_type
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: order_id
+          schema: { type: integer }
+        - in: query
+          name: from_ts
+          schema: { type: string, format: date-time }
+        - in: query
+          name: to_ts
+          schema: { type: string, format: date-time }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 500 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobHistoryListResponse' }
+
+  /api/v1/batch/jobs/{task_id}:
+    get:
+      tags: [batch]
+      parameters:
+        - in: path
+          name: task_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobStatusResponse' }
+
+  /api/v1/batch/jobs/{task_id}/retry:
+    post:
+      tags: [batch]
+      parameters:
+        - in: path
+          name: task_id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JobEnqueueResponse' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
