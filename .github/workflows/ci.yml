@@ -34,10 +34,49 @@ jobs:
         run: |
           pip install -r requirements-dev.txt
 
+      - name: Validate Alembic heads (single head expected)
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          versions = Path('alembic/versions')
+          rev = re.compile(r"^revision\s*=\s*['\"]([^'\"]+)['\"]", re.M)
+          down = re.compile(r"^down_revision\s*=\s*['\"]([^'\"]+)['\"]", re.M)
+
+          revisions = set()
+          down_revisions = set()
+
+          for f in versions.glob('*.py'):
+              text = f.read_text(encoding='utf-8')
+              m1 = rev.search(text)
+              m2 = down.search(text)
+              if m1:
+                  revisions.add(m1.group(1))
+              if m2:
+                  down_revisions.add(m2.group(1))
+
+          heads = sorted(revisions - down_revisions)
+          print('heads:', heads)
+          if len(heads) != 1:
+              raise SystemExit(f'Expected exactly one alembic head, got {len(heads)}: {heads}')
+          PY
+
       - name: Lint (ruff)
         run: |
           ruff check app tests
 
-      - name: Unit tests
+      - name: Compile check
         run: |
-          pytest -q
+          python -m compileall app tests
+
+      - name: Tests
+        run: |
+          pytest -q 2>&1 | tee pytest.log
+
+      - name: Upload pytest log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-log
+          path: backend/pytest.log

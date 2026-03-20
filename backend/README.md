@@ -157,7 +157,13 @@ ruff check app tests
 pytest -q
 ```
 
-CI runs the same minimum line on every push/PR (`order_system/.github/workflows/ci.yml`).
+### Test assumptions
+
+- Unit/contract/E2E tests in `tests/` are designed to run in CI with in-memory SQLite + stubs.
+- Redis/Celery dependencies are mocked/stubbed in E2E tests unless explicitly required.
+- Use `backend/env.ci.example` for CI-safe local reproduction.
+
+CI runs lint + compile + migration checks + tests on every push/PR (`order_system/.github/workflows/ci.yml`).
 
 ## P0 verification checklist
 
