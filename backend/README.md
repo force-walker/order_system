@@ -9,7 +9,21 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-## Run API
+## One-command startup (dev)
+
+From `order_system/`:
+
+```bash
+docker compose up --build
+```
+
+Services:
+- API: `http://127.0.0.1:8000`
+- PostgreSQL: `localhost:5432`
+- Redis: `localhost:6379`
+- Celery worker: started automatically
+
+## Run API (without Docker)
 
 ```bash
 uvicorn app.main:app --reload --port 8000
@@ -135,12 +149,15 @@ alembic heads
 python scripts/seed_sample.py
 ```
 
-## Run tests
+## Run tests / lint
 
 ```bash
 pip install -r requirements-dev.txt
-pytest
+ruff check app tests
+pytest -q
 ```
+
+CI runs the same minimum line on every push/PR (`order_system/.github/workflows/ci.yml`).
 
 ## P0 verification checklist
 
