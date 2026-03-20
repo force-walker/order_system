@@ -90,3 +90,32 @@ BUG候補:
 ### 00:13 JST+8 ログ更新依頼を反映（OpenClawBot）
 - Kojiからの「backend log text file update」依頼を受領。
 - 03-19分の進捗詳細をログへ確定反映。
+
+[2026-03-20][OpenClawBot]
+PROGRESS:
+- 今日やったこと:
+  - API latencyヒストグラムを実装（`order_system_api_request_duration_seconds`）
+  - p95/p99 latencyアラートを追加（`OrderSystemApiLatencyP95High` / `OrderSystemApiLatencyP99High`）
+  - CIをbranch protection向けに分割（`backend-lint` / `backend-schema` / `backend-test`）
+  - OpenAPI同期チェックを強化（paths + 主要schema + error code enum + 主要endpoint status code）
+  - Batch実行結果メトリクスを追加（`order_system_batch_task_executions_total`）
+  - Batch失敗/再試行スパイクアラートを追加（`OrderSystemBatchTaskFailureSpike` / `OrderSystemBatchTaskRetryingSpike`）
+- 明日やること:
+  - Grafanaダッシュボード雛形（JSON）追加
+  - 監視ルールのしきい値調整（実トラフィックに合わせる）
+  - CIのOpenAPI同期チェックを主要schemaの型差分まで拡張
+- ブロッカー:
+  - なし（軽微: AlertmanagerのDiscord通知はbridge URL設定が必要）
+
+BUG候補:
+- なし / あり（概要）:
+  - あり（軽微）: docsとruntimeの将来ドリフト余地（CIで検知は開始済み）
+- 再現手順（簡易）:
+  - docs更新漏れ状態でPRを作ると `backend-schema` ジョブで失敗
+- 影響範囲（簡易）:
+  - 開発フロー（CI）中心、ランタイムAPI影響はなし
+
+参照:
+- スレッド/メッセージURL
+  - #03-backend
+  - 主要コミット: `9179de2`, `faf8e95`, `f2ef347`, `8ca405d`, `102020e`, `98c26c8`
