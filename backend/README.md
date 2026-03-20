@@ -20,6 +20,7 @@ uvicorn app.main:app --reload --port 8000
 - Endpoint: `GET /api/v1/metrics`
 - Includes:
   - API request counter (`order_system_api_requests_total`)
+  - API latency histogram (`order_system_api_request_duration_seconds`)
   - Batch enqueue counter (`order_system_batch_enqueues_total`)
   - Batch retry counter (`order_system_batch_retries_total`)
 
@@ -51,6 +52,10 @@ curl -s http://127.0.0.1:8000/api/v1/metrics | head
   - 5xx ratio > 5% for 5m
 - `OrderSystemApiDown`:
   - API target down for >2m
+- `OrderSystemApiLatencyP95High`:
+  - p95 latency > 1.0s for 10m
+- `OrderSystemApiLatencyP99High`:
+  - p99 latency > 2.5s for 10m
 - `OrderSystemBatchRetryBlockedSpike`:
   - retry blocked >=5 in 10m
 - `OrderSystemBatchRetryLimitExceeded`:

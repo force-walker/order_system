@@ -28,6 +28,40 @@ groups:
           summary: "Order System API target is down"
           description: "Prometheus target job=order-system-api is down for >2m."
 
+      - alert: OrderSystemApiLatencyP95High
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (
+              rate(order_system_api_request_duration_seconds_bucket[5m])
+            )
+          ) > 1.0
+        for: 10m
+        labels:
+          severity: warning
+          service: order-system
+          component: api
+        annotations:
+          summary: "Order System API p95 latency is high"
+          description: "p95 latency > 1.0s for 10m. Investigate DB/query performance and worker pressure."
+
+      - alert: OrderSystemApiLatencyP99High
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum by (le) (
+              rate(order_system_api_request_duration_seconds_bucket[5m])
+            )
+          ) > 2.5
+        for: 10m
+        labels:
+          severity: warning
+          service: order-system
+          component: api
+        annotations:
+          summary: "Order System API p99 latency is high"
+          description: "p99 latency > 2.5s for 10m. Check slow endpoints and infra bottlenecks."
+
   - name: order-system-batch
     interval: 30s
     rules:
