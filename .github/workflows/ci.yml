@@ -91,6 +91,9 @@ jobs:
       - name: Compile check
         run: python -m compileall app tests
 
+      - name: OpenAPI docs/runtime sync check
+        run: python scripts/check_openapi_sync.py
+
   backend-test:
     name: backend-test
     runs-on: ubuntu-latest
