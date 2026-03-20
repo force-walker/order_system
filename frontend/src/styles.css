@@ -1,0 +1,30 @@
+:root {
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+}
+body {
+  margin: 0;
+  background: #f7f8fa;
+  color: #1f2937;
+}
+.app-shell { max-width: 980px; margin: 0 auto; padding: 24px; }
+.topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.topbar nav { display: flex; gap: 12px; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+section { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; }
+.toolbar { display: flex; gap: 8px; margin-bottom: 12px; }
+input, select, textarea, button { font: inherit; padding: 8px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { border-bottom: 1px solid #e5e7eb; text-align: left; padding: 8px; }
+.state { padding: 10px; border-radius: 8px; margin: 8px 0; }
+.state.loading { background: #eff6ff; }
+.state.empty { background: #f9fafb; }
+.state.error { background: #fef2f2; color: #991b1b; }
+.state.success { background: #ecfdf5; color: #065f46; }
+.form { display: grid; gap: 10px; max-width: 560px; }
+.form label { display: grid; gap: 4px; }
+small { color: #b91c1c; }
+.actions { display: flex; gap: 10px; margin-top: 12px; }
+dl { display: grid; grid-template-columns: 140px 1fr; row-gap: 6px; }
+dt { font-weight: 600; }
