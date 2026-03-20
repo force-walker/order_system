@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { fetchOrders } from '../api/orders'
 import type { Order } from '../types/order'
 import { EmptyState, ErrorState, LoadingState } from '../components/ViewState'
+import { StatusBadge } from '../components/StatusBadge'
 
 export const OrderListPage = () => {
   const [orders, setOrders] = useState<Order[]>([])
@@ -14,8 +15,7 @@ export const OrderListPage = () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await fetchOrders(keyword)
-      setOrders(data)
+      setOrders(await fetchOrders(keyword))
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -31,11 +31,7 @@ export const OrderListPage = () => {
     <section>
       <h2>受注一覧</h2>
       <div className="toolbar">
-        <input
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          placeholder="顧客名 / 受注番号（errorで失敗検証）"
-        />
+        <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="顧客名 / 受注番号" />
         <button onClick={() => void load()}>検索</button>
       </div>
 
@@ -49,21 +45,19 @@ export const OrderListPage = () => {
             <tr>
               <th>受注番号</th>
               <th>顧客</th>
-              <th>金額</th>
               <th>状態</th>
               <th>日付</th>
+              <th>明細数</th>
             </tr>
           </thead>
           <tbody>
             {orders.map((o) => (
               <tr key={o.id}>
-                <td>
-                  <Link to={`/orders/${o.id}`}>{o.orderNo}</Link>
-                </td>
+                <td><Link to={`/orders/${o.id}`}>{o.orderNo}</Link></td>
                 <td>{o.customerName}</td>
-                <td>{o.amount.toLocaleString()}</td>
-                <td>{o.status}</td>
+                <td><StatusBadge value={o.status} /></td>
                 <td>{o.orderDate}</td>
+                <td>{o.lines.length}</td>
               </tr>
             ))}
           </tbody>
