@@ -165,7 +165,7 @@ pytest -q
 
 CI runs branch-protection-friendly jobs on every push/PR (`order_system/.github/workflows/ci.yml`):
 - `backend-lint`
-- `backend-schema` (includes OpenAPI docs/runtime sync check for paths, critical schemas, and error-code enum)
+- `backend-schema` (includes OpenAPI docs/runtime sync check for paths, critical schemas, error-code enum, and critical endpoint status codes)
 - `backend-test`
 
 ## P0 verification checklist

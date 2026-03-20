@@ -13,6 +13,14 @@ CRITICAL_SCHEMA_REQUIRED = {
     'ErrorResponse': {'code', 'message'},
 }
 
+STATUS_METHOD_ALLOWLIST = {
+    ('/api/v1/batch/procurement-regeneration', 'post'): {'200', '409'},
+    ('/api/v1/batch/jobs/{task_id}/retry', 'post'): {'200', '404', '409', '422'},
+    ('/api/v1/orders/{order_id}/bulk-transition', 'post'): {'200', '404', '409', '422'},
+    ('/api/v1/invoices/{invoice_id}/reset-to-draft', 'post'): {'200', '404', '409', '422'},
+    ('/api/v1/invoices/{invoice_id}/unlock', 'post'): {'200', '404', '409', '422'},
+}
+
 
 def _load_yaml(path: Path) -> dict:
     return yaml.safe_load(path.read_text(encoding='utf-8'))
@@ -126,12 +134,47 @@ def main() -> int:
         for c in missing_error_codes:
             print(f'  - {c}')
 
+    # Endpoint-level response status checks for critical contracts.
+    docs_paths_obj = docs_openapi.get('paths') or {}
+    runtime_paths_obj = runtime.get('paths') or {}
+
+    for (path, method), expected_statuses in STATUS_METHOD_ALLOWLIST.items():
+        docs_method = ((docs_paths_obj.get(path) or {}).get(method) or {})
+        runtime_method = ((runtime_paths_obj.get(path) or {}).get(method) or {})
+
+        if not docs_method:
+            failed = True
+            print(f'[openapi-sync] docs missing method: {method.upper()} {path}')
+            continue
+        if not runtime_method:
+            failed = True
+            print(f'[openapi-sync] runtime missing method: {method.upper()} {path}')
+            continue
+
+        docs_statuses = set((docs_method.get('responses') or {}).keys())
+        runtime_statuses = set((runtime_method.get('responses') or {}).keys())
+
+        if not expected_statuses.issubset(docs_statuses):
+            failed = True
+            print(
+                f"[openapi-sync] docs missing statuses for {method.upper()} {path}: "
+                f"expected_at_least={sorted(expected_statuses)} docs={sorted(docs_statuses)}"
+            )
+
+        if not expected_statuses.issubset(runtime_statuses):
+            failed = True
+            print(
+                f"[openapi-sync] runtime missing statuses for {method.upper()} {path}: "
+                f"expected_at_least={sorted(expected_statuses)} runtime={sorted(runtime_statuses)}"
+            )
+
     if failed:
         return 1
 
     print(
         f"[openapi-sync] OK: paths={len(runtime_paths)} "
-        f"schemas_checked={len(CRITICAL_SCHEMA_REQUIRED)} error_codes={len(runtime_codes)}"
+        f"schemas_checked={len(CRITICAL_SCHEMA_REQUIRED)} "
+        f"error_codes={len(runtime_codes)} status_checks={len(STATUS_METHOD_ALLOWLIST)}"
     )
     return 0
 
