@@ -35,6 +35,13 @@ SCHEMA_FIELD_TYPE_EXPECTATIONS = {
     },
 }
 
+BATCH_RESPONSE_SCHEMA_EXPECTATIONS = {
+    ('/api/v1/batch/procurement-regeneration', 'post', '200'): 'JobEnqueueResponse',
+    ('/api/v1/batch/jobs', 'get', '200'): 'JobHistoryListResponse',
+    ('/api/v1/batch/jobs/{task_id}', 'get', '200'): 'JobStatusResponse',
+    ('/api/v1/batch/jobs/{task_id}/retry', 'post', '200'): 'JobEnqueueResponse',
+}
+
 
 def _load_yaml(path: Path) -> dict:
     return yaml.safe_load(path.read_text(encoding='utf-8'))
@@ -52,6 +59,17 @@ def _collect_runtime_error_codes(app_dir: Path) -> set[str]:
         text = py.read_text(encoding='utf-8')
         codes.update(code_re.findall(text))
     return codes
+
+
+def _extract_schema_ref_name(method_obj: dict, status_code: str) -> str | None:
+    response_obj = (method_obj.get('responses') or {}).get(status_code) or {}
+    content = response_obj.get('content') or {}
+    app_json = content.get('application/json') or {}
+    schema = app_json.get('schema') or {}
+    ref = schema.get('$ref')
+    if not ref:
+        return None
+    return str(ref).split('/')[-1]
 
 
 def main() -> int:
@@ -202,13 +220,37 @@ def main() -> int:
                 f"expected_at_least={sorted(expected_statuses)} runtime={sorted(runtime_statuses)}"
             )
 
+    # Batch response schema checks (docs/runtime should point to expected schema names).
+    for (path, method, status), expected_schema in BATCH_RESPONSE_SCHEMA_EXPECTATIONS.items():
+        docs_method = ((docs_paths_obj.get(path) or {}).get(method) or {})
+        runtime_method = ((runtime_paths_obj.get(path) or {}).get(method) or {})
+
+        docs_schema_name = _extract_schema_ref_name(docs_method, status)
+        runtime_schema_name = _extract_schema_ref_name(runtime_method, status)
+
+        if docs_schema_name != expected_schema:
+            failed = True
+            print(
+                f"[openapi-sync] docs response schema mismatch for {method.upper()} {path} {status}: "
+                f"expected={expected_schema} docs={docs_schema_name}"
+            )
+
+        if runtime_schema_name != expected_schema:
+            failed = True
+            print(
+                f"[openapi-sync] runtime response schema mismatch for {method.upper()} {path} {status}: "
+                f"expected={expected_schema} runtime={runtime_schema_name}"
+            )
+
     if failed:
         return 1
 
     print(
         f"[openapi-sync] OK: paths={len(runtime_paths)} "
         f"schemas_checked={len(CRITICAL_SCHEMA_REQUIRED)} "
-        f"error_codes={len(runtime_codes)} status_checks={len(STATUS_METHOD_ALLOWLIST)}"
+        f"error_codes={len(runtime_codes)} "
+        f"status_checks={len(STATUS_METHOD_ALLOWLIST)} "
+        f"batch_schema_checks={len(BATCH_RESPONSE_SCHEMA_EXPECTATIONS)}"
     )
     return 0
 
