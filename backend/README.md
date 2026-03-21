@@ -45,6 +45,8 @@ Example files:
 - `alerts/prometheus.scrape.example.yml`
 - `alerts/order_system_rules.yml`
 - `alerts/alertmanager.example.yml`
+- Grafana dashboard: `monitoring/grafana/order_system_overview.dashboard.json`
+- Batch runbook: `docs/BATCH_OPERATIONS_RUNBOOK.md`
 
 ### Quick setup flow
 

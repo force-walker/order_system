@@ -21,6 +21,20 @@ STATUS_METHOD_ALLOWLIST = {
     ('/api/v1/invoices/{invoice_id}/unlock', 'post'): {'200', '404', '409', '422'},
 }
 
+SCHEMA_FIELD_TYPE_EXPECTATIONS = {
+    'JobEnqueueResponse': {
+        'task_id': 'string',
+        'status': 'string',
+        'retry_count': 'integer',
+    },
+    'JobStatusResponse': {
+        'task_id': 'string',
+        'status': 'string',
+        'retry_count': 'integer',
+        'max_retries': 'integer',
+    },
+}
+
 
 def _load_yaml(path: Path) -> dict:
     return yaml.safe_load(path.read_text(encoding='utf-8'))
@@ -120,6 +134,26 @@ def main() -> int:
                 f"[openapi-sync] schema missing critical required fields ({schema_name}): "
                 f"required={sorted(required_fields)} docs={sorted(docs_required)}"
             )
+
+        # critical property type checks
+        expected_types = SCHEMA_FIELD_TYPE_EXPECTATIONS.get(schema_name, {})
+        docs_props = docs_schema.get('properties') or {}
+        runtime_props = runtime_schema.get('properties') or {}
+        for field, expected_type in expected_types.items():
+            docs_t = (docs_props.get(field) or {}).get('type')
+            runtime_t = (runtime_props.get(field) or {}).get('type')
+            if docs_t != expected_type:
+                failed = True
+                print(
+                    f"[openapi-sync] docs field type mismatch ({schema_name}.{field}): "
+                    f"expected={expected_type} docs={docs_t}"
+                )
+            if runtime_t != expected_type:
+                failed = True
+                print(
+                    f"[openapi-sync] runtime field type mismatch ({schema_name}.{field}): "
+                    f"expected={expected_type} runtime={runtime_t}"
+                )
 
     # Error code sync: every runtime api_error code should exist in docs enum.
     runtime_codes = _collect_runtime_error_codes(backend_root / 'app')
