@@ -94,6 +94,9 @@ jobs:
       - name: OpenAPI docs/runtime sync check
         run: python scripts/check_openapi_sync.py
 
+      - name: Runbook command consistency check
+        run: python scripts/check_runbook_commands.py
+
   backend-test:
     name: backend-test
     runs-on: ubuntu-latest
