@@ -17,7 +17,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    pricing_basis = sa.Enum('per_order_uom', 'per_kg', name='pricingbasis')
+    pricing_basis = sa.Enum('per_order_uom', 'per_kg', name='pricingbasis', create_type=False)
     order_status = sa.Enum('new', 'confirmed', 'purchasing', 'shipped', 'delivered', 'completed', 'cancelled', name='orderstatus')
     line_status = sa.Enum('open', 'allocated', 'purchased', 'invoiced', 'cancelled', name='linestatus')
     result_status = sa.Enum('full', 'partial', 'failed', 'substitute', name='resultstatus')
