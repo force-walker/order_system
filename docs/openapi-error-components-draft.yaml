@@ -1,73 +1,31 @@
 openapi: 3.0.3
 info:
   title: Order System Error Components Draft
-  version: 0.1.0
-  description: Reusable OpenAPI components for MVP error responses.
+  version: 0.2.0
+  description: Reusable OpenAPI components for MVP error responses (aligned to architecture/06-error-model.md).
 
 components:
   schemas:
     ErrorResponse:
       type: object
       required:
-        - error_code
+        - code
         - message
+        - traceId
       properties:
-        error_code:
-          type: string
-          description: Stable application error code.
-          enum:
-            - INVALID_REQUEST_FORMAT
-            - MISSING_REQUIRED_FIELD
-            - INVALID_REASON_CODE
-            - INVALID_DATE_FORMAT
-            - AUTH_REQUIRED
-            - AUTH_INVALID_TOKEN
-            - AUTH_EXPIRED_TOKEN
-            - PERMISSION_DENIED
-            - SCOPE_FORBIDDEN
-            - LOCKED_PERIOD_FORBIDDEN
-            - RESOURCE_NOT_FOUND
-            - ORDER_NOT_FOUND
-            - INVOICE_NOT_FOUND
-            - ALLOCATION_NOT_FOUND
-            - VERSION_CONFLICT
-            - STATUS_TRANSITION_CONFLICT
-            - STATUS_NO_TARGET_LINES
-            - INVOICE_LOCKED
-            - DUPLICATE_INVOICE_NO
-            - REGENERATION_IN_PROGRESS
-            - VALIDATION_FAILED
-            - INVALID_BILLABLE_QTY
-            - MISSING_ACTUAL_WEIGHT
-            - MISSING_REQUIRED_UNIT_PRICE
-            - INVOICEABLE_FLAG_FALSE_INCLUDED
-            - RESULT_STATUS_NOT_FILLED_INCLUDED
-            - TAX_MISMATCH
-            - TOTAL_MISMATCH
-            - NEGATIVE_AMOUNT_NOT_ALLOWED
-            - UNLOCK_REASON_REQUIRED
-            - SHORTAGE_NOTE_REQUIRED
+        code:
+          $ref: '#/components/schemas/ErrorCode'
         message:
           type: string
-        field:
-          type: string
-          nullable: true
-        resource:
-          type: string
-          nullable: true
-          enum: [order, order_line, allocation, purchase_result, invoice, invoice_line]
-        resource_id:
-          oneOf:
-            - type: string
-            - type: integer
-          nullable: true
-        detail:
+          description: Human-readable error summary.
+        details:
           type: object
           additionalProperties: true
           nullable: true
-        trace_id:
+          description: Structured context for debugging/UI handling.
+        traceId:
           type: string
-          nullable: true
+          description: Correlation id for support/troubleshooting.
 
     ErrorCode:
       type: string
@@ -77,32 +35,23 @@ components:
         - INVALID_REASON_CODE
         - INVALID_DATE_FORMAT
         - AUTH_REQUIRED
-        - AUTH_INVALID_TOKEN
-        - AUTH_EXPIRED_TOKEN
-        - PERMISSION_DENIED
-        - SCOPE_FORBIDDEN
-        - LOCKED_PERIOD_FORBIDDEN
+        - AUTH_TOKEN_INVALID
+        - AUTH_TOKEN_EXPIRED
+        - AUTH_FORBIDDEN
         - RESOURCE_NOT_FOUND
-        - ORDER_NOT_FOUND
-        - INVOICE_NOT_FOUND
-        - ALLOCATION_NOT_FOUND
-        - VERSION_CONFLICT
+        - RESOURCE_ALREADY_EXISTS
         - STATUS_TRANSITION_CONFLICT
         - STATUS_NO_TARGET_LINES
-        - INVOICE_LOCKED
-        - DUPLICATE_INVOICE_NO
-        - REGENERATION_IN_PROGRESS
+        - STATUS_STALE_VERSION
         - VALIDATION_FAILED
-        - INVALID_BILLABLE_QTY
-        - MISSING_ACTUAL_WEIGHT
-        - MISSING_REQUIRED_UNIT_PRICE
-        - INVOICEABLE_FLAG_FALSE_INCLUDED
-        - RESULT_STATUS_NOT_FILLED_INCLUDED
+        - CATCH_WEIGHT_MISSING_ACTUAL_WEIGHT
+        - PRICE_BASIS_FIELD_MISSING
+        - INVOICE_LOCKED
+        - UNLOCK_REASON_REQUIRED
         - TAX_MISMATCH
         - TOTAL_MISMATCH
         - NEGATIVE_AMOUNT_NOT_ALLOWED
-        - UNLOCK_REASON_REQUIRED
-        - SHORTAGE_NOTE_REQUIRED
+        - INTERNAL_ERROR
 
   responses:
     BadRequest:
@@ -114,9 +63,11 @@ components:
           examples:
             missingField:
               value:
-                error_code: MISSING_REQUIRED_FIELD
+                code: MISSING_REQUIRED_FIELD
                 message: required field is missing
-                field: invoice_date
+                details:
+                  field: invoiceDate
+                traceId: trc_01HXYZBADREQ
 
     Unauthorized:
       description: Unauthorized.
@@ -127,8 +78,9 @@ components:
           examples:
             authRequired:
               value:
-                error_code: AUTH_REQUIRED
+                code: AUTH_REQUIRED
                 message: authentication is required
+                traceId: trc_01HXYZ401
 
     Forbidden:
       description: Forbidden.
@@ -139,8 +91,9 @@ components:
           examples:
             denied:
               value:
-                error_code: PERMISSION_DENIED
+                code: AUTH_FORBIDDEN
                 message: role is not allowed for this operation
+                traceId: trc_01HXYZ403
 
     NotFound:
       description: Resource not found.
@@ -151,10 +104,12 @@ components:
           examples:
             invoiceNotFound:
               value:
-                error_code: INVOICE_NOT_FOUND
-                message: invoice not found
-                resource: invoice
-                resource_id: inv_123
+                code: RESOURCE_NOT_FOUND
+                message: resource not found
+                details:
+                  resource: invoice
+                  resourceId: 123
+                traceId: trc_01HXYZ404
 
     Conflict:
       description: State/version conflict.
@@ -163,26 +118,31 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           examples:
-            versionConflict:
+            staleVersion:
               value:
-                error_code: VERSION_CONFLICT
-                message: Record has been updated by another user. Please reload and retry.
-                field: version
-                resource: invoice
-                resource_id: inv_123
-                detail:
-                  current_version: 18
-            duplicateInvoiceNo:
+                code: STATUS_STALE_VERSION
+                message: record has been updated by another user. reload and retry.
+                details:
+                  resource: invoice
+                  resourceId: 123
+                  currentVersion: 18
+                traceId: trc_01HXYZ409A
+            duplicateResource:
               value:
-                error_code: DUPLICATE_INVOICE_NO
-                message: invoice number duplication detected
-                field: invoice_no
-                detail:
-                  invoice_no: INV/2026/00042
+                code: RESOURCE_ALREADY_EXISTS
+                message: duplicate resource detected
+                details:
+                  resource: invoice
+                  key: invoice_no
+                  value: INV/2026/00042
+                traceId: trc_01HXYZ409B
             noTargetLines:
               value:
-                error_code: STATUS_NO_TARGET_LINES
+                code: STATUS_NO_TARGET_LINES
                 message: no eligible lines found for this transition
+                details:
+                  orderIds: [1001, 1002]
+                traceId: trc_01HXYZ409C
 
     UnprocessableEntity:
       description: Business validation error.
@@ -191,21 +151,34 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           examples:
-            taxMismatch:
+            validationFailed:
               value:
-                error_code: TAX_MISMATCH
-                message: tax amount does not match floor(total_amount_pretax * tax_rate)
-                field: tax_amount
+                code: VALIDATION_FAILED
+                message: validation failed
+                details:
+                  fields:
+                    - name: unit_price_uom_kg
+                      reason: required_when_pricing_basis_is_uom_kg
+                traceId: trc_01HXYZ422A
             missingActualWeight:
               value:
-                error_code: MISSING_ACTUAL_WEIGHT
+                code: CATCH_WEIGHT_MISSING_ACTUAL_WEIGHT
                 message: catch-weight line requires actual_weight_kg
-                field: actual_weight_kg
+                details:
+                  field: actual_weight_kg
+                traceId: trc_01HXYZ422B
 
 paths:
-  /api/invoices/{id}/finalize:
+  /api/v1/invoices/{invoiceId}/finalize:
     post:
       summary: Finalize invoice (response mapping sample)
+      parameters:
+        - in: path
+          name: invoiceId
+          required: true
+          schema:
+            type: integer
+            format: int64
       responses:
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -219,3 +192,15 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                internal:
+                  value:
+                    code: INTERNAL_ERROR
+                    message: unexpected internal error
+                    traceId: trc_01HXYZ500
