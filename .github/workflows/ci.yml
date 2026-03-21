@@ -97,6 +97,9 @@ jobs:
       - name: Runbook command consistency check
         run: python scripts/check_runbook_commands.py
 
+      - name: Observability docs/alerts/metrics sync check
+        run: python scripts/check_observability_docs_sync.py
+
   backend-test:
     name: backend-test
     runs-on: ubuntu-latest

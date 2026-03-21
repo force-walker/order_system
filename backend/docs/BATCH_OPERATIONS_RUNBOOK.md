@@ -4,7 +4,7 @@
 Covers `procurement_regeneration` batch jobs.
 
 ## Quick triage
-1. Check alerts (`BatchTaskFailureSpike`, `BatchTaskRetryingSpike`).
+1. Check alerts (`OrderSystemBatchTaskFailureSpike`, `OrderSystemBatchTaskRetryingSpike`, `OrderSystemBatchRetryBlockedSpike`, `OrderSystemBatchEnqueueBlockedSpike`, `OrderSystemBatchRetryLimitExceeded`).
 2. Query latest jobs:
    - `GET /api/v1/batch/jobs?job_type=procurement_regeneration&limit=50`
 3. Inspect target task:
