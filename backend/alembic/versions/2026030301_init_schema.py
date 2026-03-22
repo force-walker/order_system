@@ -16,6 +16,21 @@ branch_labels = None
 depends_on = None
 
 
+def _create_enum_if_not_exists(name: str, labels: list[str]) -> None:
+    labels_sql = ", ".join(f"'{label}'" for label in labels)
+    op.execute(
+        f"""
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = '{name}') THEN
+            CREATE TYPE {name} AS ENUM ({labels_sql});
+          END IF;
+        END
+        $$;
+        """
+    )
+
+
 def upgrade() -> None:
     pricing_basis = sa.Enum('per_order_uom', 'per_kg', name='pricingbasis', create_type=False)
     order_status = sa.Enum('new', 'confirmed', 'purchasing', 'shipped', 'delivered', 'completed', 'cancelled', name='orderstatus')
@@ -24,12 +39,12 @@ def upgrade() -> None:
     invoice_status = sa.Enum('draft', 'finalized', 'sent', 'paid', 'cancelled', name='invoicestatus')
     audit_action = sa.Enum('create', 'update', 'status_change', 'override', name='auditaction')
 
-    pricing_basis.create(op.get_bind(), checkfirst=True)
-    order_status.create(op.get_bind(), checkfirst=True)
-    line_status.create(op.get_bind(), checkfirst=True)
-    result_status.create(op.get_bind(), checkfirst=True)
-    invoice_status.create(op.get_bind(), checkfirst=True)
-    audit_action.create(op.get_bind(), checkfirst=True)
+    _create_enum_if_not_exists('pricingbasis', ['per_order_uom', 'per_kg'])
+    _create_enum_if_not_exists('orderstatus', ['new', 'confirmed', 'purchasing', 'shipped', 'delivered', 'completed', 'cancelled'])
+    _create_enum_if_not_exists('linestatus', ['open', 'allocated', 'purchased', 'invoiced', 'cancelled'])
+    _create_enum_if_not_exists('resultstatus', ['full', 'partial', 'failed', 'substitute'])
+    _create_enum_if_not_exists('invoicestatus', ['draft', 'finalized', 'sent', 'paid', 'cancelled'])
+    _create_enum_if_not_exists('auditaction', ['create', 'update', 'status_change', 'override'])
 
     op.create_table(
         'products',
