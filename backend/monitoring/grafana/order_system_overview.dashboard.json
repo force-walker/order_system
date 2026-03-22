@@ -1,0 +1,72 @@
+{
+  "title": "Order System Backend Overview",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "API Requests / sec",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(order_system_api_requests_total[5m]))",
+          "legendFormat": "rps"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "API 5xx Ratio",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(order_system_api_requests_total{status=~\"5..\"}[5m])) / clamp_min(sum(rate(order_system_api_requests_total[5m])), 0.001)",
+          "legendFormat": "5xx_ratio"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "API Latency p95 / p99",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(order_system_api_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(order_system_api_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "p99"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Batch Execution Outcomes",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum by (status) (increase(order_system_batch_task_executions_total[30m]))",
+          "legendFormat": "{{status}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Batch Enqueue/Retry Blocked",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "increase(order_system_batch_enqueues_total{result=\"blocked\"}[30m])",
+          "legendFormat": "enqueue_blocked"
+        },
+        {
+          "expr": "increase(order_system_batch_retries_total{result=\"blocked\"}[30m])",
+          "legendFormat": "retry_blocked"
+        }
+      ]
+    }
+  ]
+}

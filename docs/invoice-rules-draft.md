@@ -14,8 +14,13 @@ When `pricing_basis = uom_count`
 
 Then:
 - `line_after_discount = line_subtotal - discount_amount`
-- `line_tax = tax(line_after_discount, tax_code)`
-- `line_total = line_after_discount + line_tax`
+- `line_tax` can be calculated as reference value for line display/debug
+- `line_total = line_after_discount + line_tax` (reference)
+
+Note:
+- Official tax amount for finalize is invoice-level only:
+  `invoice_tax_total = floor(invoice_subtotal × tax_rate)`
+- If line-level reference tax and invoice-level tax differ due to rounding, invoice-level value is authoritative.
 
 ## Rule B: Catch-weight pricing
 When `pricing_basis = uom_kg`

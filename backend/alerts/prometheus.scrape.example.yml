@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s
+
+rule_files:
+  - ./alerts/order_system_rules.yml
+
+scrape_configs:
+  - job_name: order-system-api
+    metrics_path: /api/v1/metrics
+    static_configs:
+      - targets: ['127.0.0.1:8000']

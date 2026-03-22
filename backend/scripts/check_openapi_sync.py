@@ -1,0 +1,259 @@
+import re
+from pathlib import Path
+
+import yaml
+from fastapi.testclient import TestClient
+
+from app.main import app
+
+
+CRITICAL_SCHEMA_REQUIRED = {
+    'JobEnqueueResponse': {'task_id', 'status'},
+    'JobStatusResponse': {'task_id', 'status'},
+    'ErrorResponse': {'code', 'message'},
+}
+
+STATUS_METHOD_ALLOWLIST = {
+    ('/api/v1/batch/procurement-regeneration', 'post'): {'200', '409'},
+    ('/api/v1/batch/jobs/{task_id}/retry', 'post'): {'200', '404', '409', '422'},
+    ('/api/v1/orders/{order_id}/bulk-transition', 'post'): {'200', '404', '409', '422'},
+    ('/api/v1/invoices/{invoice_id}/reset-to-draft', 'post'): {'200', '404', '409', '422'},
+    ('/api/v1/invoices/{invoice_id}/unlock', 'post'): {'200', '404', '409', '422'},
+}
+
+SCHEMA_FIELD_TYPE_EXPECTATIONS = {
+    'JobEnqueueResponse': {
+        'task_id': 'string',
+        'status': 'string',
+        'retry_count': 'integer',
+    },
+    'JobStatusResponse': {
+        'task_id': 'string',
+        'status': 'string',
+        'retry_count': 'integer',
+        'max_retries': 'integer',
+    },
+}
+
+BATCH_RESPONSE_SCHEMA_EXPECTATIONS = {
+    ('/api/v1/batch/procurement-regeneration', 'post', '200'): 'JobEnqueueResponse',
+    ('/api/v1/batch/jobs', 'get', '200'): 'JobHistoryListResponse',
+    ('/api/v1/batch/jobs/{task_id}', 'get', '200'): 'JobStatusResponse',
+    ('/api/v1/batch/jobs/{task_id}/retry', 'post', '200'): 'JobEnqueueResponse',
+}
+
+
+def _load_yaml(path: Path) -> dict:
+    return yaml.safe_load(path.read_text(encoding='utf-8'))
+
+
+def _collect_runtime_openapi() -> dict:
+    client = TestClient(app)
+    return client.get('/openapi.json').json()
+
+
+def _collect_runtime_error_codes(app_dir: Path) -> set[str]:
+    code_re = re.compile(r"api_error\(\s*\d+\s*,\s*['\"]([^'\"]+)['\"]")
+    codes: set[str] = set()
+    for py in app_dir.rglob('*.py'):
+        text = py.read_text(encoding='utf-8')
+        codes.update(code_re.findall(text))
+    return codes
+
+
+def _extract_schema_ref_name(method_obj: dict, status_code: str) -> str | None:
+    response_obj = (method_obj.get('responses') or {}).get(status_code) or {}
+    content = response_obj.get('content') or {}
+    app_json = content.get('application/json') or {}
+    schema = app_json.get('schema') or {}
+    ref = schema.get('$ref')
+    if not ref:
+        return None
+    return str(ref).split('/')[-1]
+
+
+def main() -> int:
+    repo_root = Path(__file__).resolve().parents[2]
+    backend_root = Path(__file__).resolve().parents[1]
+
+    docs_openapi_path = repo_root / 'docs' / 'openapi-mvp-skeleton-draft.yaml'
+    docs_error_path = repo_root / 'docs' / 'openapi-error-components-draft.yaml'
+
+    if not docs_openapi_path.exists() or not docs_error_path.exists():
+        print('[openapi-sync] docs files are missing')
+        return 1
+
+    docs_openapi = _load_yaml(docs_openapi_path)
+    docs_error = _load_yaml(docs_error_path)
+    runtime = _collect_runtime_openapi()
+
+    docs_paths = set((docs_openapi.get('paths') or {}).keys())
+    runtime_paths = set((runtime.get('paths') or {}).keys())
+
+    missing_in_docs = sorted(runtime_paths - docs_paths)
+    extra_in_docs = sorted(docs_paths - runtime_paths)
+
+    failed = False
+
+    if missing_in_docs or extra_in_docs:
+        failed = True
+        print('[openapi-sync] path mismatch detected')
+        if missing_in_docs:
+            print('  Missing in docs:')
+            for p in missing_in_docs:
+                print(f'    - {p}')
+        if extra_in_docs:
+            print('  Extra in docs (not in runtime):')
+            for p in extra_in_docs:
+                print(f'    - {p}')
+
+    runtime_schemas = (runtime.get('components') or {}).get('schemas') or {}
+    docs_schemas = (docs_openapi.get('components') or {}).get('schemas') or {}
+    docs_error_schemas = (docs_error.get('components') or {}).get('schemas') or {}
+
+    # Schema required fields checks.
+    for schema_name, required_fields in CRITICAL_SCHEMA_REQUIRED.items():
+        if schema_name == 'ErrorResponse':
+            source = docs_error_schemas.get(schema_name) or docs_schemas.get(schema_name) or {}
+            required = set(source.get('required') or [])
+            if not required_fields.issubset(required):
+                failed = True
+                print(
+                    f"[openapi-sync] schema required mismatch ({schema_name}): "
+                    f"expected at least {sorted(required_fields)}, got {sorted(required)}"
+                )
+            continue
+
+        docs_schema = docs_schemas.get(schema_name) or {}
+        runtime_schema = runtime_schemas.get(schema_name) or {}
+
+        if not docs_schema:
+            failed = True
+            print(f'[openapi-sync] docs missing schema: {schema_name}')
+            continue
+        if not runtime_schema:
+            failed = True
+            print(f'[openapi-sync] runtime missing schema: {schema_name}')
+            continue
+
+        docs_required = set(docs_schema.get('required') or [])
+        runtime_required = set(runtime_schema.get('required') or [])
+
+        if docs_required != runtime_required:
+            failed = True
+            print(
+                f"[openapi-sync] schema required mismatch ({schema_name}): "
+                f"docs={sorted(docs_required)} runtime={sorted(runtime_required)}"
+            )
+
+        if not required_fields.issubset(docs_required):
+            failed = True
+            print(
+                f"[openapi-sync] schema missing critical required fields ({schema_name}): "
+                f"required={sorted(required_fields)} docs={sorted(docs_required)}"
+            )
+
+        # critical property type checks
+        expected_types = SCHEMA_FIELD_TYPE_EXPECTATIONS.get(schema_name, {})
+        docs_props = docs_schema.get('properties') or {}
+        runtime_props = runtime_schema.get('properties') or {}
+        for field, expected_type in expected_types.items():
+            docs_t = (docs_props.get(field) or {}).get('type')
+            runtime_t = (runtime_props.get(field) or {}).get('type')
+            if docs_t != expected_type:
+                failed = True
+                print(
+                    f"[openapi-sync] docs field type mismatch ({schema_name}.{field}): "
+                    f"expected={expected_type} docs={docs_t}"
+                )
+            if runtime_t != expected_type:
+                failed = True
+                print(
+                    f"[openapi-sync] runtime field type mismatch ({schema_name}.{field}): "
+                    f"expected={expected_type} runtime={runtime_t}"
+                )
+
+    # Error code sync: every runtime api_error code should exist in docs enum.
+    runtime_codes = _collect_runtime_error_codes(backend_root / 'app')
+    docs_error_enum = set(
+        (((docs_error_schemas.get('ErrorResponse') or {}).get('properties') or {}).get('code') or {}).get('enum') or []
+    )
+
+    missing_error_codes = sorted(runtime_codes - docs_error_enum)
+    if missing_error_codes:
+        failed = True
+        print('[openapi-sync] error code mismatch: codes used in runtime but missing in docs enum')
+        for c in missing_error_codes:
+            print(f'  - {c}')
+
+    # Endpoint-level response status checks for critical contracts.
+    docs_paths_obj = docs_openapi.get('paths') or {}
+    runtime_paths_obj = runtime.get('paths') or {}
+
+    for (path, method), expected_statuses in STATUS_METHOD_ALLOWLIST.items():
+        docs_method = ((docs_paths_obj.get(path) or {}).get(method) or {})
+        runtime_method = ((runtime_paths_obj.get(path) or {}).get(method) or {})
+
+        if not docs_method:
+            failed = True
+            print(f'[openapi-sync] docs missing method: {method.upper()} {path}')
+            continue
+        if not runtime_method:
+            failed = True
+            print(f'[openapi-sync] runtime missing method: {method.upper()} {path}')
+            continue
+
+        docs_statuses = set((docs_method.get('responses') or {}).keys())
+        runtime_statuses = set((runtime_method.get('responses') or {}).keys())
+
+        if not expected_statuses.issubset(docs_statuses):
+            failed = True
+            print(
+                f"[openapi-sync] docs missing statuses for {method.upper()} {path}: "
+                f"expected_at_least={sorted(expected_statuses)} docs={sorted(docs_statuses)}"
+            )
+
+        if not expected_statuses.issubset(runtime_statuses):
+            failed = True
+            print(
+                f"[openapi-sync] runtime missing statuses for {method.upper()} {path}: "
+                f"expected_at_least={sorted(expected_statuses)} runtime={sorted(runtime_statuses)}"
+            )
+
+    # Batch response schema checks (docs/runtime should point to expected schema names).
+    for (path, method, status), expected_schema in BATCH_RESPONSE_SCHEMA_EXPECTATIONS.items():
+        docs_method = ((docs_paths_obj.get(path) or {}).get(method) or {})
+        runtime_method = ((runtime_paths_obj.get(path) or {}).get(method) or {})
+
+        docs_schema_name = _extract_schema_ref_name(docs_method, status)
+        runtime_schema_name = _extract_schema_ref_name(runtime_method, status)
+
+        if docs_schema_name != expected_schema:
+            failed = True
+            print(
+                f"[openapi-sync] docs response schema mismatch for {method.upper()} {path} {status}: "
+                f"expected={expected_schema} docs={docs_schema_name}"
+            )
+
+        if runtime_schema_name != expected_schema:
+            failed = True
+            print(
+                f"[openapi-sync] runtime response schema mismatch for {method.upper()} {path} {status}: "
+                f"expected={expected_schema} runtime={runtime_schema_name}"
+            )
+
+    if failed:
+        return 1
+
+    print(
+        f"[openapi-sync] OK: paths={len(runtime_paths)} "
+        f"schemas_checked={len(CRITICAL_SCHEMA_REQUIRED)} "
+        f"error_codes={len(runtime_codes)} "
+        f"status_checks={len(STATUS_METHOD_ALLOWLIST)} "
+        f"batch_schema_checks={len(BATCH_RESPONSE_SCHEMA_EXPECTATIONS)}"
+    )
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
