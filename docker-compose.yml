@@ -13,7 +13,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres -d order_system"]
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 20
 
   redis:
     image: redis:7-alpine
@@ -23,21 +23,15 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 20
 
   api:
-    build:
-      context: ./backend
+    image: python:3.12-slim
     working_dir: /app
     command: >
-      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+      sh -c "pip install -r requirements.txt && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     env_file:
-      - ./backend/.env.example
-    environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/order_system
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/1
-      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      - ./backend/.env
     volumes:
       - ./backend:/app
     ports:
@@ -49,17 +43,12 @@ services:
         condition: service_healthy
 
   worker:
-    build:
-      context: ./backend
+    image: python:3.12-slim
     working_dir: /app
-    command: celery -A app.workers.celery_app.celery_app worker --loglevel=info
+    command: >
+      sh -c "pip install -r requirements.txt && celery -A app.workers.celery_app.celery_app worker --loglevel=info"
     env_file:
-      - ./backend/.env.example
-    environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/order_system
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/1
-      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      - ./backend/.env
     volumes:
       - ./backend:/app
     depends_on:

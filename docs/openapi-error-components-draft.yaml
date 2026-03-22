@@ -2,51 +2,56 @@ openapi: 3.0.3
 info:
   title: Order System Error Components Draft
   version: 0.2.0
-  description: Reusable OpenAPI components aligned to current API runtime error payload.
+  description: Reusable OpenAPI components for MVP error responses (aligned to architecture/06-error-model.md).
 
 components:
   schemas:
     ErrorResponse:
       type: object
-      required: [code, message]
+      required:
+        - code
+        - message
+        - traceId
       properties:
         code:
-          type: string
-          description: Stable application error code.
-          enum:
-            - AUTH_REQUIRED
-            - FORBIDDEN
-            - ORDER_NOT_FOUND
-            - RESOURCE_NOT_FOUND
-            - ORDER_STATUS_MISMATCH
-            - VERSION_CONFLICT
-            - INVALID_TRANSITION_PAIR
-            - STATUS_NO_TARGET_LINES
-            - ORDER_WEIGHT_REQUIRED
-            - INVOICE_NOT_FOUND
-            - INVOICE_NOT_DRAFT
-            - INVOICE_NOT_FINALIZED
-            - INVOICE_NOT_LOCKED_FINALIZED
-            - INVALID_RESET_REASON_CODE
-            - INVALID_UNLOCK_REASON_CODE
-            - NEGATIVE_INVOICE_TOTAL
-            - NO_INVOICEABLE_ITEMS
-            - CATCH_WEIGHT_REQUIRED
-            - UNIT_PRICE_UOM_COUNT_REQUIRED
-            - UNIT_PRICE_UOM_KG_REQUIRED
-            - ALLOCATION_NOT_FOUND
-            - ALLOCATION_INVALID
-            - ALLOCATION_INVALID_TARGET_QTY
-            - SPLIT_QTY_MISMATCH
-            - SPLIT_GROUP_MISSING_PARENT
-            - SPLIT_GROUP_MIN_CHILDREN
-            - SPLIT_GROUP_QTY_MISMATCH
-            - SPLIT_GROUP_UOM_MISMATCH
-            - REGENERATION_IN_PROGRESS
-            - RETRY_NOT_ALLOWED
-            - RETRY_LIMIT_EXCEEDED
+          $ref: '#/components/schemas/ErrorCode'
         message:
           type: string
+          description: Human-readable error summary.
+        details:
+          type: object
+          additionalProperties: true
+          nullable: true
+          description: Structured context for debugging/UI handling.
+        traceId:
+          type: string
+          description: Correlation id for support/troubleshooting.
+
+    ErrorCode:
+      type: string
+      enum:
+        - INVALID_REQUEST_FORMAT
+        - MISSING_REQUIRED_FIELD
+        - INVALID_REASON_CODE
+        - INVALID_DATE_FORMAT
+        - AUTH_REQUIRED
+        - AUTH_TOKEN_INVALID
+        - AUTH_TOKEN_EXPIRED
+        - AUTH_FORBIDDEN
+        - RESOURCE_NOT_FOUND
+        - RESOURCE_ALREADY_EXISTS
+        - STATUS_TRANSITION_CONFLICT
+        - STATUS_NO_TARGET_LINES
+        - STATUS_STALE_VERSION
+        - VALIDATION_FAILED
+        - CATCH_WEIGHT_MISSING_ACTUAL_WEIGHT
+        - PRICE_BASIS_FIELD_MISSING
+        - INVOICE_LOCKED
+        - UNLOCK_REASON_REQUIRED
+        - TAX_MISMATCH
+        - TOTAL_MISMATCH
+        - NEGATIVE_AMOUNT_NOT_ALLOWED
+        - INTERNAL_ERROR
 
   responses:
     BadRequest:
@@ -56,10 +61,13 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           examples:
-            badRequest:
+            missingField:
               value:
-                code: ORDER_WEIGHT_REQUIRED
-                message: per_kg item requires estimated_weight_kg or actual_weight_kg
+                code: MISSING_REQUIRED_FIELD
+                message: required field is missing
+                details:
+                  field: invoiceDate
+                traceId: trc_01HXYZBADREQ
 
     Unauthorized:
       description: Unauthorized.
@@ -71,7 +79,8 @@ components:
             authRequired:
               value:
                 code: AUTH_REQUIRED
-                message: missing auth headers
+                message: authentication is required
+                traceId: trc_01HXYZ401
 
     Forbidden:
       description: Forbidden.
@@ -82,8 +91,9 @@ components:
           examples:
             denied:
               value:
-                code: FORBIDDEN
-                message: forbidden
+                code: AUTH_FORBIDDEN
+                message: role is not allowed for this operation
+                traceId: trc_01HXYZ403
 
     NotFound:
       description: Resource not found.
@@ -94,41 +104,81 @@ components:
           examples:
             invoiceNotFound:
               value:
-                code: INVOICE_NOT_FOUND
-                message: invoice not found
+                code: RESOURCE_NOT_FOUND
+                message: resource not found
+                details:
+                  resource: invoice
+                  resourceId: 123
+                traceId: trc_01HXYZ404
 
     Conflict:
-      description: State conflict.
+      description: State/version conflict.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           examples:
+            staleVersion:
+              value:
+                code: STATUS_STALE_VERSION
+                message: record has been updated by another user. reload and retry.
+                details:
+                  resource: invoice
+                  resourceId: 123
+                  currentVersion: 18
+                traceId: trc_01HXYZ409A
+            duplicateResource:
+              value:
+                code: RESOURCE_ALREADY_EXISTS
+                message: duplicate resource detected
+                details:
+                  resource: invoice
+                  key: invoice_no
+                  value: INV/2026/00042
+                traceId: trc_01HXYZ409B
             noTargetLines:
               value:
                 code: STATUS_NO_TARGET_LINES
-                message: no eligible lines
-            versionConflict:
-              value:
-                code: VERSION_CONFLICT
-                message: record has been updated by another user
+                message: no eligible lines found for this transition
+                details:
+                  orderIds: [1001, 1002]
+                traceId: trc_01HXYZ409C
 
     UnprocessableEntity:
-      description: Validation error.
+      description: Business validation error.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           examples:
-            invalidTransition:
+            validationFailed:
               value:
-                code: INVALID_TRANSITION_PAIR
-                message: invalid transition pair
+                code: VALIDATION_FAILED
+                message: validation failed
+                details:
+                  fields:
+                    - name: unit_price_uom_kg
+                      reason: required_when_pricing_basis_is_uom_kg
+                traceId: trc_01HXYZ422A
+            missingActualWeight:
+              value:
+                code: CATCH_WEIGHT_MISSING_ACTUAL_WEIGHT
+                message: catch-weight line requires actual_weight_kg
+                details:
+                  field: actual_weight_kg
+                traceId: trc_01HXYZ422B
 
 paths:
-  /api/v1/invoices/{invoice_id}/finalize:
+  /api/v1/invoices/{invoiceId}/finalize:
     post:
       summary: Finalize invoice (response mapping sample)
+      parameters:
+        - in: path
+          name: invoiceId
+          required: true
+          schema:
+            type: integer
+            format: int64
       responses:
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -142,3 +192,15 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                internal:
+                  value:
+                    code: INTERNAL_ERROR
+                    message: unexpected internal error
+                    traceId: trc_01HXYZ500

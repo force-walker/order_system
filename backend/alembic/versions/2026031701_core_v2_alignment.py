@@ -18,8 +18,29 @@ depends_on = None
 
 def upgrade() -> None:
     # --- pricing basis enum migration ---
-    op.execute("ALTER TYPE pricingbasis RENAME TO pricingbasis_old")
-    op.execute("CREATE TYPE pricingbasis AS ENUM ('uom_count', 'uom_kg')")
+    op.execute(
+        """
+        DO $$
+        BEGIN
+          IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'pricingbasis')
+             AND NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'pricingbasis_old') THEN
+            ALTER TYPE pricingbasis RENAME TO pricingbasis_old;
+          END IF;
+        END
+        $$;
+        """
+    )
+    op.execute(
+        """
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'pricingbasis') THEN
+            CREATE TYPE pricingbasis AS ENUM ('uom_count', 'uom_kg');
+          END IF;
+        END
+        $$;
+        """
+    )
 
     op.execute(
         """
@@ -180,8 +201,29 @@ def downgrade() -> None:
     op.alter_column('order_items', 'unit_price_uom_kg', new_column_name='unit_price_per_kg')
     op.alter_column('order_items', 'unit_price_uom_count', new_column_name='unit_price_order_uom')
 
-    op.execute("ALTER TYPE pricingbasis RENAME TO pricingbasis_new")
-    op.execute("CREATE TYPE pricingbasis AS ENUM ('per_order_uom', 'per_kg')")
+    op.execute(
+        """
+        DO $$
+        BEGIN
+          IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'pricingbasis')
+             AND NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'pricingbasis_new') THEN
+            ALTER TYPE pricingbasis RENAME TO pricingbasis_new;
+          END IF;
+        END
+        $$;
+        """
+    )
+    op.execute(
+        """
+        DO $$
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'pricingbasis') THEN
+            CREATE TYPE pricingbasis AS ENUM ('per_order_uom', 'per_kg');
+          END IF;
+        END
+        $$;
+        """
+    )
 
     op.execute(
         """
